@@ -1,1 +1,2 @@
-# cocos-blast
+# hello-world
+Hello world new project template.
