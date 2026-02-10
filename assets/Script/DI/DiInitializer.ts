@@ -5,7 +5,8 @@ import MainGameConfig from "../Config/MainGameConfig";
 import MainLevelConfig from "../Config/MainLevelConfig";
 import TileColorConfig from "../Config/TileColorConfig";
 import IGameCore from "../GameCore/IGameCore";
-import BlastGameCore from "../GameCore/BlastGameCore";
+import GameController from "../GameCore/GameController";
+import BlastGameCoreView from "../GameCore/BlastGameCoreView";
 import IInput from "../Input/IInput";
 import TapInput from "../Input/TapInput";
 
@@ -69,7 +70,9 @@ export default class DiInitializer extends cc.Component {
         const moves = this.mainLevelConfig ? this.mainLevelConfig.moves : 0;
         const targetScore = this.mainLevelConfig ? this.mainLevelConfig.targetScore : 0;
 
-        const gameCore: IGameCore = new BlastGameCore(
+        const gameCoreView = new BlastGameCoreView();
+
+        const gameCore: IGameCore = new GameController(
             gameRootNode,
             this.tileSpriteFrame,
             rows,
@@ -89,7 +92,8 @@ export default class DiInitializer extends cc.Component {
                 } else {
                     this.pointsLabel.string = score.toString();
                 }
-            }) : undefined
+            }) : undefined,
+            gameCoreView
         );
 
         container.register(DiTokens.GameCore, gameCore);
