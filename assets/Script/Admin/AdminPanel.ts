@@ -2,22 +2,13 @@ const { ccclass, property } = cc._decorator;
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
 import IGameCore from "../GameCore/IGameCore";
-import MainLevelConfig from "../Config/MainLevelConfig";
+import MainLevelsConfig from "../Config/MainLevelConfig";
 
 @ccclass
 export default class AdminPanel extends cc.Component {
 
-    @property(MainLevelConfig)
-    mainLevelConfig: MainLevelConfig = null;
-
-    @property(cc.JsonAsset)
-    level1: cc.JsonAsset = null;
-
-    @property(cc.JsonAsset)
-    level2: cc.JsonAsset = null;
-
-    @property(cc.JsonAsset)
-    level3: cc.JsonAsset = null;
+    @property(MainLevelsConfig)
+    mainLevelConfig: MainLevelsConfig = null;
 
     onToggleClick() {
         this.node.active = !this.node.active;
@@ -74,15 +65,19 @@ export default class AdminPanel extends cc.Component {
             return;
         }
 
-        if (index === 1 && this.level1) {
-            this.mainLevelConfig.json = this.level1;
-        } else if (index === 2 && this.level2) {
-            this.mainLevelConfig.json = this.level2;
-        } else if (index === 3 && this.level3) {
-            this.mainLevelConfig.json = this.level3;
-        } else {
+        const levels = this.mainLevelConfig.levels;
+
+        if (!levels || levels.length === 0) {
             return;
         }
+
+        const targetIndex = index - 1;
+
+        if (targetIndex < 0 || targetIndex >= levels.length) {
+            return;
+        }
+
+        this.mainLevelConfig.currentLevelIndex = targetIndex;
 
         if (!DiContainer.instance.has(DiTokens.DiInitializer)) {
             return;

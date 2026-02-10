@@ -2,11 +2,12 @@ const { ccclass, property, executeInEditMode } = cc._decorator;
 import DiContainer from "./DiContainer";
 import DiTokens from "./DiTokens";
 import MainGameConfig from "../Config/MainGameConfig";
-import MainLevelConfig from "../Config/MainLevelConfig";
+import MainLevelsConfig from "../Config/MainLevelConfig";
 import TileColorConfig from "../Config/TileColorConfig";
 import IGameCore from "../GameCore/IGameCore";
 import GameController from "../GameCore/GameController";
 import BlastGameCoreView from "../GameCore/BlastGameCoreView";
+import EndGamePanel from "../UI/EndGamePanel";
 import IInput from "../Input/IInput";
 import TapInput from "../Input/TapInput";
 
@@ -17,8 +18,8 @@ export default class DiInitializer extends cc.Component {
     @property(MainGameConfig)
     mainGameConfig: MainGameConfig = null;
 
-    @property(MainLevelConfig)
-    mainLevelConfig: MainLevelConfig = null;
+    @property(MainLevelsConfig)
+    mainLevelConfig: MainLevelsConfig = null;
 
     @property(TileColorConfig)
     tileColorConfig: TileColorConfig = null;
@@ -32,11 +33,17 @@ export default class DiInitializer extends cc.Component {
     @property(cc.Label)
     pointsLabel: cc.Label = null;
 
-    @property(cc.SpriteFrame)
-    tileSpriteFrame: cc.SpriteFrame = null;
-
     @property(cc.Node)
     gameRoot: cc.Node = null;
+
+    @property(cc.Node)
+    boostersPanel: cc.Node = null;
+
+    @property(cc.Node)
+    movesPanel: cc.Node = null;
+
+    @property(cc.Node)
+    endGamePanelNode: cc.Node = null;
 
     onLoad() {
         DiContainer.instance.register(DiTokens.DiInitializer, this);
@@ -60,6 +67,22 @@ export default class DiInitializer extends cc.Component {
 
         const gameRootNode = this.gameRoot ? this.gameRoot : this.node;
 
+        if (this.gameRoot) {
+            this.gameRoot.active = true;
+        }
+
+        if (this.boostersPanel) {
+            this.boostersPanel.active = true;
+        }
+
+        if (this.movesPanel) {
+            this.movesPanel.active = true;
+        }
+
+        if (this.endGamePanelNode) {
+            this.endGamePanelNode.active = false;
+        }
+
         gameRootNode.removeAllChildren();
 
         const rows = this.mainLevelConfig ? this.mainLevelConfig.rows : 8;
@@ -72,9 +95,10 @@ export default class DiInitializer extends cc.Component {
 
         const gameCoreView = new BlastGameCoreView();
 
+        const endGamePanel = this.endGamePanelNode ? this.endGamePanelNode.getComponent(EndGamePanel) : null;
+
         const gameCore: IGameCore = new GameController(
             gameRootNode,
-            this.tileSpriteFrame,
             rows,
             cols,
             colors,
@@ -93,7 +117,45 @@ export default class DiInitializer extends cc.Component {
                     this.pointsLabel.string = score.toString();
                 }
             }) : undefined,
-            gameCoreView
+            gameCoreView,
+            endGamePanel ? (() => {
+                if (this.gameRoot) {
+                    this.gameRoot.active = false;
+                }
+
+                if (this.boostersPanel) {
+                    this.boostersPanel.active = false;
+                }
+
+                if (this.movesPanel) {
+                    this.movesPanel.active = false;
+                }
+
+                if (this.endGamePanelNode) {
+                    this.endGamePanelNode.active = true;
+                }
+
+                endGamePanel.showWin();
+            }) : undefined,
+            endGamePanel ? (() => {
+                if (this.gameRoot) {
+                    this.gameRoot.active = false;
+                }
+
+                if (this.boostersPanel) {
+                    this.boostersPanel.active = false;
+                }
+
+                if (this.movesPanel) {
+                    this.movesPanel.active = false;
+                }
+
+                if (this.endGamePanelNode) {
+                    this.endGamePanelNode.active = true;
+                }
+
+                endGamePanel.showLose();
+            }) : undefined
         );
 
         container.register(DiTokens.GameCore, gameCore);

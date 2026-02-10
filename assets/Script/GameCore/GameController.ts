@@ -10,8 +10,6 @@ import FieldView from "./FieldView";
 
 export default class GameController implements IGameCore {
     private parentNode: cc.Node;
-    private defaultTileSpriteFrame: cc.SpriteFrame;
-
     private rows: number;
     private cols: number;
     private colors: string[];
@@ -27,10 +25,11 @@ export default class GameController implements IGameCore {
 
     private movesChangedCallback: ((moves: number) => void) | null = null;
     private scoreChangedCallback: ((score: number, targetScore: number) => void) | null = null;
+    private winCallback: (() => void) | null = null;
+    private loseCallback: (() => void) | null = null;
 
-    constructor(parentNode: cc.Node, defaultTileSpriteFrame: cc.SpriteFrame, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView) {
+    constructor(parentNode: cc.Node, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView, winCallback?: () => void, loseCallback?: () => void) {
         this.parentNode = parentNode;
-        this.defaultTileSpriteFrame = defaultTileSpriteFrame;
         this.rows = rows;
         this.cols = cols;
         this.colors = colors && colors.length > 0 ? colors.slice() : ["red", "green", "blue", "yellow"];
@@ -40,9 +39,11 @@ export default class GameController implements IGameCore {
         this.movesChangedCallback = movesChangedCallback || null;
         this.scoreChangedCallback = scoreChangedCallback || null;
         this.animationView = animationView || null;
+        this.winCallback = winCallback || null;
+        this.loseCallback = loseCallback || null;
 
         this.model = new BlastGameModel(rows, cols, this.colors, moves, targetScore);
-        this.fieldView = new FieldView(rows, cols, this.colors, tileSize, tileSpacing, defaultTileSpriteFrame, tileColorConfig);
+        this.fieldView = new FieldView(rows, cols, this.colors, tileSize, tileSpacing, null, tileColorConfig);
     }
 
     init(): void {
@@ -106,6 +107,7 @@ export default class GameController implements IGameCore {
             this.updateMovesView();
             this.updateScoreView();
             this.isAnimating = false;
+            this.checkEndGame();
         };
 
         if (this.animationView && tilesToPop.length > 0) {
@@ -130,6 +132,31 @@ export default class GameController implements IGameCore {
     addMoves(value: number): void {
         this.model.addMoves(value);
         this.updateMovesView();
+    }
+
+    private checkEndGame() {
+        const targetScore = this.model.getTargetScore();
+        const score = this.model.getScore();
+        const remainingMoves = this.model.getRemainingMoves();
+        const hasMovesOnBoard = this.model.hasAvailableMoves();
+
+        const hasTarget = targetScore > 0;
+        const isWin = hasTarget && score >= targetScore;
+        const isLoseByMoves = hasTarget && score < targetScore && remainingMoves <= 0;
+        const isLoseByNoMoves = hasTarget && score < targetScore && remainingMoves > 0 && !hasMovesOnBoard;
+
+        if (isWin) {
+            if (this.winCallback) {
+                this.winCallback();
+            }
+            return;
+        }
+
+        if (isLoseByMoves || isLoseByNoMoves) {
+            if (this.loseCallback) {
+                this.loseCallback();
+            }
+        }
     }
 
     private updateMovesView() {

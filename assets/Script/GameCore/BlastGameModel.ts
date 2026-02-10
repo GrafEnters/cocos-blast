@@ -56,6 +56,24 @@ export default class BlastGameModel {
         return this.targetScore;
     }
 
+    hasAvailableMoves(): boolean {
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const value = this.board[row][col];
+
+                if (value === null) {
+                    continue;
+                }
+
+                if (this.hasSameColorNeighbor(row, col, value)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     addMoves(value: number): void {
         if (value <= 0) {
             return;
@@ -122,6 +140,30 @@ export default class BlastGameModel {
         }
 
         return true;
+    }
+
+    private hasSameColorNeighbor(row: number, col: number, color: number): boolean {
+        const neighbors = this.getNeighbors(row, col);
+
+        for (let i = 0; i < neighbors.length; i++) {
+            const neighbor = neighbors[i];
+
+            if (!neighbor) {
+                continue;
+            }
+
+            const neighborColor = this.board[neighbor.row][neighbor.col];
+
+            if (neighborColor === null) {
+                continue;
+            }
+
+            if (neighborColor === color) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private randomColorIndex(): number {

@@ -1,13 +1,35 @@
 const { ccclass, property } = cc._decorator;
 
 @ccclass
-export default class MainLevelConfig extends cc.Component {
+export default class MainLevelsConfig extends cc.Component {
 
-    @property(cc.JsonAsset)
-    json: cc.JsonAsset = null;
+    @property([cc.JsonAsset])
+    levels: cc.JsonAsset[] = [];
+
+    @property
+    currentLevelIndex: number = 0;
 
     private get raw(): any {
-        return this.json ? this.json.json : {};
+        const levelAsset = this.currentLevelAsset;
+        return levelAsset ? levelAsset.json : {};
+    }
+
+    private get currentLevelAsset(): cc.JsonAsset | null {
+        if (!this.levels || this.levels.length === 0) {
+            return null;
+        }
+
+        let index = this.currentLevelIndex;
+
+        if (index < 0) {
+            index = 0;
+        }
+
+        if (index >= this.levels.length) {
+            index = this.levels.length - 1;
+        }
+
+        return this.levels[index];
     }
 
     get rows(): number {
