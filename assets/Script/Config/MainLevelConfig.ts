@@ -34,5 +34,16 @@ export default class MainLevelConfig extends cc.Component {
         const data: any = this.raw;
         return data.moves || 0;
     }
+
+    get colors(): string[] {
+        const data: any = this.raw;
+        const value = data.colors;
+
+        if (Array.isArray(value)) {
+            return value;
+        }
+
+        return ["red", "green", "blue", "yellow"];
+    }
 }
 

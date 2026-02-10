@@ -2,28 +2,31 @@ import Tile from "../Tile";
 import IGameCore from "./IGameCore";
 import TileInputEventType from "./TileInputEventType";
 import TileInputEvent from "./TileInputEvent";
+import TileColorConfig from "../Config/TileColorConfig";
 
 export default class BlastGameCore implements IGameCore {
     private parentNode: cc.Node;
-    private tileSpriteFrame: cc.SpriteFrame;
+    private defaultTileSpriteFrame: cc.SpriteFrame;
 
     private rows: number;
     private cols: number;
-    private colorsCount: number;
+    private colors: string[];
     private tileSize: number;
     private tileSpacing: number;
 
     private tilesRoot: cc.Node = null;
     private tiles: Tile[][] = [];
+    private tileColorConfig: TileColorConfig = null;
 
-    constructor(parentNode: cc.Node, tileSpriteFrame: cc.SpriteFrame, rows: number, cols: number, colorsCount: number, tileSize: number, tileSpacing: number) {
+    constructor(parentNode: cc.Node, defaultTileSpriteFrame: cc.SpriteFrame, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig) {
         this.parentNode = parentNode;
-        this.tileSpriteFrame = tileSpriteFrame;
+        this.defaultTileSpriteFrame = defaultTileSpriteFrame;
         this.rows = rows;
         this.cols = cols;
-        this.colorsCount = colorsCount;
+        this.colors = colors && colors.length > 0 ? colors.slice() : ["red", "green", "blue", "yellow"];
         this.tileSize = tileSize;
         this.tileSpacing = tileSpacing;
+        this.tileColorConfig = tileColorConfig;
     }
 
     init(): void {
@@ -74,16 +77,21 @@ export default class BlastGameCore implements IGameCore {
         const node = new cc.Node();
         const sprite = node.addComponent(cc.Sprite);
 
-        sprite.spriteFrame = this.tileSpriteFrame;
+        const colorKey = this.colorKeyForIndex(colorIndex);
+        const spriteFrame = this.spriteForColorKey(colorKey);
+
+        sprite.spriteFrame = spriteFrame;
         sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         node.setContentSize(this.tileSize, this.tileSize);
-        node.color = this.colorForIndex(colorIndex);
+
+        if (spriteFrame === this.defaultTileSpriteFrame) {
+            node.color = this.colorForIndex(colorIndex);
+        }
 
         const tile = node.addComponent(Tile);
         tile.row = row;
         tile.col = col;
         tile.colorIndex = colorIndex;
-        tile.game = this;
 
         this.tilesRoot.addChild(node);
         this.updateTilePosition(tile);
@@ -105,7 +113,27 @@ export default class BlastGameCore implements IGameCore {
     }
 
     private randomColorIndex(): number {
-        return Math.floor(Math.random() * this.colorsCount);
+        return Math.floor(Math.random() * this.colors.length);
+    }
+
+    private colorKeyForIndex(index: number): string {
+        if (index < 0 || index >= this.colors.length) {
+            return "default";
+        }
+
+        return this.colors[index];
+    }
+
+    private spriteForColorKey(key: string): cc.SpriteFrame {
+        if (this.tileColorConfig) {
+            const sprite = this.tileColorConfig.getSprite(key);
+
+            if (sprite) {
+                return sprite;
+            }
+        }
+
+        return this.defaultTileSpriteFrame;
     }
 
     private colorForIndex(index: number): cc.Color {

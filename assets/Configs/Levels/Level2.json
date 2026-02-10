@@ -5,6 +5,7 @@
   "rows": 9,
   "cols": 9,
   "colorsCount": 4,
+  "colors": ["red", "green", "blue", "yellow"],
   "targetScore": 1200,
   "moves": 25
 }
