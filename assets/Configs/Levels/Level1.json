@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "name": "Level 1",
+  "description": "Базовое поле 8x8, стандартные параметры.",
+  "rows": 8,
+  "cols": 8,
+  "colorsCount": 4,
+  "targetScore": 500,
+  "moves": 20
+}

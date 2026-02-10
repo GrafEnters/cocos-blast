@@ -1,0 +1,10 @@
+{
+  "id": 3,
+  "name": "Level 3",
+  "description": "Поле 10x8, больше цветов и сложность выше.",
+  "rows": 10,
+  "cols": 8,
+  "colorsCount": 5,
+  "targetScore": 2500,
+  "moves": 30
+}

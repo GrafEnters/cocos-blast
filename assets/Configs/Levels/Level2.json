@@ -1,0 +1,10 @@
+{
+  "id": 2,
+  "name": "Level 2",
+  "description": "Поле 9x9, больше ходов и очков.",
+  "rows": 9,
+  "cols": 9,
+  "colorsCount": 4,
+  "targetScore": 1200,
+  "moves": 25
+}

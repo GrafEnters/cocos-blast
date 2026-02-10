@@ -1,7 +1,7 @@
 const { ccclass } = cc._decorator;
-import IGameCore from "./GameCore/IGameCore";
-import TileInputEventType from "./GameCore/TileInputEventType";
-import TileInputEvent from "./GameCore/TileInputEvent";
+import DiContainer from "./DI/DiContainer";
+import DiTokens from "./DI/DiTokens";
+import IInput from "./Input/IInput";
 
 @ccclass
 export default class Tile extends cc.Component {
@@ -9,7 +9,8 @@ export default class Tile extends cc.Component {
     row: number = 0;
     col: number = 0;
     colorIndex: number = 0;
-    game: IGameCore = null;
+
+    private input: IInput = null;
 
     onEnable() {
         this.node.on(cc.Node.EventType.TOUCH_END, this.handleClick, this);
@@ -19,25 +20,28 @@ export default class Tile extends cc.Component {
         this.node.off(cc.Node.EventType.TOUCH_END, this.handleClick, this);
     }
 
+    private resolveInput() {
+        if (this.input) {
+            return;
+        }
+
+        const container = DiContainer.instance;
+
+        if (!container.has(DiTokens.Input)) {
+            return;
+        }
+
+        this.input = container.resolve<IInput>(DiTokens.Input);
+    }
+
     private handleClick() {
-        if (!this.game) {
+        this.resolveInput();
+
+        if (!this.input) {
             return;
         }
 
-        const supported = this.game.getSupportedEvents();
-
-        if (supported.indexOf(TileInputEventType.Tap) === -1) {
-            return;
-        }
-
-        const event: TileInputEvent = {
-            type: TileInputEventType.Tap,
-            tile: this,
-        };
-
-        this.game.handleEvent(event);
+        this.input.handleTileTap(this);
     }
 }
-
-
 
