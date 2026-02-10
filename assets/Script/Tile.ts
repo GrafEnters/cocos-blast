@@ -1,5 +1,7 @@
 const { ccclass } = cc._decorator;
-import Helloworld from "./Helloworld";
+import IGameCore from "./GameCore/IGameCore";
+import TileInputEventType from "./GameCore/TileInputEventType";
+import TileInputEvent from "./GameCore/TileInputEvent";
 
 @ccclass
 export default class Tile extends cc.Component {
@@ -7,7 +9,7 @@ export default class Tile extends cc.Component {
     row: number = 0;
     col: number = 0;
     colorIndex: number = 0;
-    game: Helloworld = null;
+    game: IGameCore = null;
 
     onEnable() {
         this.node.on(cc.Node.EventType.TOUCH_END, this.handleClick, this);
@@ -22,7 +24,20 @@ export default class Tile extends cc.Component {
             return;
         }
 
-        this.game.onTileClicked(this);
+        const supported = this.game.getSupportedEvents();
+
+        if (supported.indexOf(TileInputEventType.Tap) === -1) {
+            return;
+        }
+
+        const event: TileInputEvent = {
+            type: TileInputEventType.Tap,
+            tile: this,
+        };
+
+        this.game.handleEvent(event);
     }
 }
+
+
 
