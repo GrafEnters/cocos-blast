@@ -25,6 +25,9 @@ export default class DiInitializer extends cc.Component {
     @property
     rebuild: boolean = false;
 
+    @property(cc.Label)
+    movesLabel: cc.Label = null;
+
     @property(cc.SpriteFrame)
     tileSpriteFrame: cc.SpriteFrame = null;
 
@@ -59,6 +62,7 @@ export default class DiInitializer extends cc.Component {
         const colors = this.mainLevelConfig ? this.mainLevelConfig.colors : ["red", "green", "blue", "yellow"];
         const tileSize = this.mainGameConfig ? this.mainGameConfig.tileSize : 64;
         const tileSpacing = this.mainGameConfig ? this.mainGameConfig.tileSpacing : 4;
+        const moves = this.mainLevelConfig ? this.mainLevelConfig.moves : 0;
 
         const gameCore: IGameCore = new BlastGameCore(
             gameRootNode,
@@ -68,7 +72,11 @@ export default class DiInitializer extends cc.Component {
             colors,
             tileSize,
             tileSpacing,
-            this.tileColorConfig
+            this.tileColorConfig,
+            moves,
+            this.movesLabel ? (value => {
+                this.movesLabel.string = value.toString();
+            }) : undefined
         );
 
         container.register(DiTokens.GameCore, gameCore);

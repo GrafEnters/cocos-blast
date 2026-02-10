@@ -18,7 +18,11 @@ export default class BlastGameCore implements IGameCore {
     private tiles: Tile[][] = [];
     private tileColorConfig: TileColorConfig = null;
 
-    constructor(parentNode: cc.Node, defaultTileSpriteFrame: cc.SpriteFrame, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig) {
+    private totalMoves: number;
+    private remainingMoves: number;
+    private movesChangedCallback: ((moves: number) => void) | null = null;
+
+    constructor(parentNode: cc.Node, defaultTileSpriteFrame: cc.SpriteFrame, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, movesChangedCallback?: (moves: number) => void) {
         this.parentNode = parentNode;
         this.defaultTileSpriteFrame = defaultTileSpriteFrame;
         this.rows = rows;
@@ -27,11 +31,16 @@ export default class BlastGameCore implements IGameCore {
         this.tileSize = tileSize;
         this.tileSpacing = tileSpacing;
         this.tileColorConfig = tileColorConfig;
+        this.totalMoves = moves >= 0 ? moves : 0;
+        this.remainingMoves = this.totalMoves;
+        this.movesChangedCallback = movesChangedCallback || null;
     }
 
     init(): void {
         this.createTilesRoot();
         this.initBoard();
+
+        this.updateMovesView();
     }
 
     getSupportedEvents(): TileInputEventType[] {
@@ -39,6 +48,10 @@ export default class BlastGameCore implements IGameCore {
     }
 
     handleEvent(event: TileInputEvent): void {
+        if (this.remainingMoves <= 0) {
+            return;
+        }
+
         if (event.type !== TileInputEventType.Tap) {
             return;
         }
@@ -52,6 +65,11 @@ export default class BlastGameCore implements IGameCore {
 
         this.removeGroup(group);
         this.applyGravityAndRefill();
+        this.decreaseMoves();
+    }
+
+    getRemainingMoves(): number {
+        return this.remainingMoves;
     }
 
     private createTilesRoot() {
@@ -262,6 +280,23 @@ export default class BlastGameCore implements IGameCore {
                 this.tiles[row][col] = tile;
             }
         }
+    }
+
+    private decreaseMoves() {
+        if (this.remainingMoves <= 0) {
+            return;
+        }
+
+        this.remainingMoves--;
+        this.updateMovesView();
+    }
+
+    private updateMovesView() {
+        if (!this.movesChangedCallback) {
+            return;
+        }
+
+        this.movesChangedCallback(this.remainingMoves);
     }
 }
 

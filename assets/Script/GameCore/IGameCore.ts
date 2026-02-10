@@ -5,6 +5,7 @@ export default interface IGameCore {
     init(): void;
     getSupportedEvents(): TileInputEventType[];
     handleEvent(event: TileInputEvent): void;
+    getRemainingMoves(): number;
 }
 
 
