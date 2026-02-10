@@ -1,4 +1,4 @@
-const { ccclass, property } = cc._decorator;
+const { ccclass, property, executeInEditMode } = cc._decorator;
 import DiContainer from "./DiContainer";
 import DiTokens from "./DiTokens";
 import MainGameConfig from "../Config/MainGameConfig";
@@ -10,6 +10,7 @@ import IInput from "../Input/IInput";
 import TapInput from "../Input/TapInput";
 
 @ccclass
+@executeInEditMode
 export default class DiInitializer extends cc.Component {
 
     @property(MainGameConfig)
@@ -21,6 +22,9 @@ export default class DiInitializer extends cc.Component {
     @property(TileColorConfig)
     tileColorConfig: TileColorConfig = null;
 
+    @property
+    rebuild: boolean = false;
+
     @property(cc.SpriteFrame)
     tileSpriteFrame: cc.SpriteFrame = null;
 
@@ -28,6 +32,10 @@ export default class DiInitializer extends cc.Component {
     gameRoot: cc.Node = null;
 
     onLoad() {
+        this.initialize();
+    }
+
+    private initialize() {
         const container = DiContainer.instance;
 
         if (this.mainGameConfig) {
@@ -43,6 +51,8 @@ export default class DiInitializer extends cc.Component {
         }
 
         const gameRootNode = this.gameRoot ? this.gameRoot : this.node;
+
+        gameRootNode.removeAllChildren();
 
         const rows = this.mainLevelConfig ? this.mainLevelConfig.rows : 8;
         const cols = this.mainLevelConfig ? this.mainLevelConfig.cols : 8;
@@ -69,6 +79,15 @@ export default class DiInitializer extends cc.Component {
 
         gameCore.init();
         input.init();
+    }
+
+    update() {
+        if (!this.rebuild) {
+            return;
+        }
+
+        this.rebuild = false;
+        this.initialize();
     }
 }
 

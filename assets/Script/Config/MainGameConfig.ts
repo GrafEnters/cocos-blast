@@ -8,12 +8,24 @@ export default class MainGameConfig extends cc.Component {
 
     get tileSize(): number {
         const data: any = this.json ? this.json.json : {};
-        return data.tileSize || 64;
+        const value = data.tileSize;
+
+        if (value === undefined || value === null) {
+            return 64;
+        }
+
+        return value;
     }
 
     get tileSpacing(): number {
         const data: any = this.json ? this.json.json : {};
-        return data.tileSpacing || 4;
+        const value = data.tileSpacing;
+
+        if (value === undefined || value === null) {
+            return 4;
+        }
+
+        return value;
     }
 }
 
