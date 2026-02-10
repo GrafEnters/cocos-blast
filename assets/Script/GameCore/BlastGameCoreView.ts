@@ -1,8 +1,8 @@
 import Tile from "../Tile";
-import IBlastGameCoreView from "./IBlastGameCoreView";
+import IAnimationView from "./IAnimationView";
 
-export default class BlastGameCoreView implements IBlastGameCoreView {
-    playGroupPopAnimation(group: Tile[], onComplete: () => void): void {
+export default class BlastGameCoreView implements IAnimationView {
+    playGroupRemoveAnimation(group: Tile[], onComplete: () => void): void {
         if (!group || group.length === 0) {
             onComplete();
             return;

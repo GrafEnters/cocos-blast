@@ -3,8 +3,10 @@ import IGameCore from "./IGameCore";
 import TileInputEventType from "./TileInputEventType";
 import TileInputEvent from "./TileInputEvent";
 import TileColorConfig from "../Config/TileColorConfig";
-import BlastGameModel, { BlastGameBoardCell } from "./BlastGameModel";
-import IBlastGameCoreView from "./IBlastGameCoreView";
+import BlastGameModel from "./BlastGameModel";
+import IAnimationView from "./IAnimationView";
+import IFieldView from "./IFieldView";
+import FieldView from "./FieldView";
 
 export default class GameController implements IGameCore {
     private parentNode: cc.Node;
@@ -15,20 +17,18 @@ export default class GameController implements IGameCore {
     private colors: string[];
     private tileSize: number;
     private tileSpacing: number;
-
-    private tilesRoot: cc.Node = null;
-    private tiles: Tile[][] = [];
     private tileColorConfig: TileColorConfig = null;
 
-    private view: IBlastGameCoreView = null;
+    private animationView: IAnimationView = null;
     private model: BlastGameModel = null;
+    private fieldView: IFieldView = null;
 
     private isAnimating: boolean = false;
 
     private movesChangedCallback: ((moves: number) => void) | null = null;
     private scoreChangedCallback: ((score: number, targetScore: number) => void) | null = null;
 
-    constructor(parentNode: cc.Node, defaultTileSpriteFrame: cc.SpriteFrame, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, view?: IBlastGameCoreView) {
+    constructor(parentNode: cc.Node, defaultTileSpriteFrame: cc.SpriteFrame, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView) {
         this.parentNode = parentNode;
         this.defaultTileSpriteFrame = defaultTileSpriteFrame;
         this.rows = rows;
@@ -39,16 +39,17 @@ export default class GameController implements IGameCore {
         this.tileColorConfig = tileColorConfig;
         this.movesChangedCallback = movesChangedCallback || null;
         this.scoreChangedCallback = scoreChangedCallback || null;
-        this.view = view || null;
+        this.animationView = animationView || null;
 
         this.model = new BlastGameModel(rows, cols, this.colors, moves, targetScore);
+        this.fieldView = new FieldView(rows, cols, this.colors, tileSize, tileSpacing, defaultTileSpriteFrame, tileColorConfig);
     }
 
     init(): void {
         this.model.init();
 
-        this.createTilesRoot();
-        this.rebuildViewFromModel();
+        this.fieldView.init(this.parentNode);
+        this.fieldView.rebuild(this.model.getBoard());
 
         this.updateMovesView();
         this.updateScoreView();
@@ -91,7 +92,7 @@ export default class GameController implements IGameCore {
 
         for (let i = 0; i < result.removed.length; i++) {
             const cell = result.removed[i];
-            const visualTile = this.getTile(cell.row, cell.col);
+            const visualTile = this.fieldView.getTile(cell.row, cell.col);
 
             if (visualTile) {
                 tilesToPop.push(visualTile);
@@ -101,14 +102,14 @@ export default class GameController implements IGameCore {
         this.isAnimating = true;
 
         const completeStep = () => {
-            this.rebuildViewFromModel();
+            this.fieldView.rebuild(this.model.getBoard());
             this.updateMovesView();
             this.updateScoreView();
             this.isAnimating = false;
         };
 
-        if (this.view && tilesToPop.length > 0) {
-            this.view.playGroupPopAnimation(tilesToPop, completeStep);
+        if (this.animationView && tilesToPop.length > 0) {
+            this.animationView.playGroupRemoveAnimation(tilesToPop, completeStep);
         } else {
             completeStep();
         }
@@ -129,120 +130,6 @@ export default class GameController implements IGameCore {
     addMoves(value: number): void {
         this.model.addMoves(value);
         this.updateMovesView();
-    }
-
-    private createTilesRoot() {
-        this.tilesRoot = new cc.Node();
-        this.tilesRoot.name = "TilesRoot";
-        this.parentNode.addChild(this.tilesRoot);
-    }
-
-    private rebuildViewFromModel() {
-        this.tilesRoot.removeAllChildren();
-        this.tiles = [];
-
-        const board = this.model.getBoard();
-
-        for (let row = 0; row < this.rows; row++) {
-            this.tiles[row] = [];
-            for (let col = 0; col < this.cols; col++) {
-                const value = board[row][col] as BlastGameBoardCell;
-
-                if (value === null) {
-                    this.tiles[row][col] = null;
-                    continue;
-                }
-
-                const tile = this.createTile(row, col, value);
-                this.tiles[row][col] = tile;
-            }
-        }
-    }
-
-    private createTile(row: number, col: number, colorIndex: number): Tile {
-        const node = new cc.Node();
-        const sprite = node.addComponent(cc.Sprite);
-
-        const colorKey = this.colorKeyForIndex(colorIndex);
-        const spriteFrame = this.spriteForColorKey(colorKey);
-
-        sprite.spriteFrame = spriteFrame;
-        sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
-        node.setContentSize(this.tileSize, this.tileSize);
-
-        if (spriteFrame === this.defaultTileSpriteFrame) {
-            node.color = this.colorForIndex(colorIndex);
-        }
-
-        const tile = node.addComponent(Tile);
-        tile.row = row;
-        tile.col = col;
-        tile.colorIndex = colorIndex;
-
-        this.tilesRoot.addChild(node);
-        this.updateTilePosition(tile);
-
-        return tile;
-    }
-
-    private updateTilePosition(tile: Tile) {
-        const width = this.cols * this.tileSize + (this.cols - 1) * this.tileSpacing;
-        const height = this.rows * this.tileSize + (this.rows - 1) * this.tileSpacing;
-
-        const originX = -width * 0.5 + this.tileSize * 0.5;
-        const originY = -height * 0.5 + this.tileSize * 0.5;
-
-        const x = originX + tile.col * (this.tileSize + this.tileSpacing);
-        const y = originY + tile.row * (this.tileSize + this.tileSpacing);
-
-        tile.node.position = cc.v3(x, y, 0);
-    }
-
-    private colorKeyForIndex(index: number): string {
-        if (index < 0 || index >= this.colors.length) {
-            return "default";
-        }
-
-        return this.colors[index];
-    }
-
-    private spriteForColorKey(key: string): cc.SpriteFrame {
-        if (this.tileColorConfig) {
-            const sprite = this.tileColorConfig.getSprite(key);
-
-            if (sprite) {
-                return sprite;
-            }
-        }
-
-        return this.defaultTileSpriteFrame;
-    }
-
-    private colorForIndex(index: number): cc.Color {
-        switch (index) {
-            case 0:
-                return cc.Color.RED;
-            case 1:
-                return cc.Color.GREEN;
-            case 2:
-                return cc.Color.BLUE;
-            case 3:
-                return cc.Color.YELLOW;
-            default:
-                return cc.Color.WHITE;
-        }
-    }
-
-    private getTile(row: number, col: number): Tile | null {
-        if (row < 0 || row >= this.rows) {
-            return null;
-        }
-
-        if (col < 0 || col >= this.cols) {
-            return null;
-        }
-
-        return this.tiles[row][col];
     }
 
     private updateMovesView() {
