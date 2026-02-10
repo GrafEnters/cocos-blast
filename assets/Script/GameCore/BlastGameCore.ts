@@ -319,6 +319,15 @@ export default class BlastGameCore implements IGameCore {
         this.updateMovesView();
     }
 
+    addMoves(value: number): void {
+        if (value <= 0) {
+            return;
+        }
+
+        this.remainingMoves += value;
+        this.updateMovesView();
+    }
+
     private updateMovesView() {
         if (!this.movesChangedCallback) {
             return;

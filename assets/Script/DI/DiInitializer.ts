@@ -38,6 +38,7 @@ export default class DiInitializer extends cc.Component {
     gameRoot: cc.Node = null;
 
     onLoad() {
+        DiContainer.instance.register(DiTokens.DiInitializer, this);
         this.initialize();
     }
 

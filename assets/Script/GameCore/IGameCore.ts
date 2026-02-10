@@ -8,6 +8,7 @@ export default interface IGameCore {
     getRemainingMoves(): number;
     getScore(): number;
     getTargetScore(): number;
+    addMoves(value: number): void;
 }
 
 
