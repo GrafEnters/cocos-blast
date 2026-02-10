@@ -21,8 +21,11 @@ export default class BlastGameCore implements IGameCore {
     private totalMoves: number;
     private remainingMoves: number;
     private movesChangedCallback: ((moves: number) => void) | null = null;
+    private score: number;
+    private targetScore: number;
+    private scoreChangedCallback: ((score: number, targetScore: number) => void) | null = null;
 
-    constructor(parentNode: cc.Node, defaultTileSpriteFrame: cc.SpriteFrame, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, movesChangedCallback?: (moves: number) => void) {
+    constructor(parentNode: cc.Node, defaultTileSpriteFrame: cc.SpriteFrame, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void) {
         this.parentNode = parentNode;
         this.defaultTileSpriteFrame = defaultTileSpriteFrame;
         this.rows = rows;
@@ -34,6 +37,9 @@ export default class BlastGameCore implements IGameCore {
         this.totalMoves = moves >= 0 ? moves : 0;
         this.remainingMoves = this.totalMoves;
         this.movesChangedCallback = movesChangedCallback || null;
+        this.score = 0;
+        this.targetScore = targetScore > 0 ? targetScore : 0;
+        this.scoreChangedCallback = scoreChangedCallback || null;
     }
 
     init(): void {
@@ -41,6 +47,7 @@ export default class BlastGameCore implements IGameCore {
         this.initBoard();
 
         this.updateMovesView();
+        this.updateScoreView();
     }
 
     getSupportedEvents(): TileInputEventType[] {
@@ -49,6 +56,10 @@ export default class BlastGameCore implements IGameCore {
 
     handleEvent(event: TileInputEvent): void {
         if (this.remainingMoves <= 0) {
+            return;
+        }
+
+        if (this.targetScore > 0 && this.score >= this.targetScore) {
             return;
         }
 
@@ -65,11 +76,20 @@ export default class BlastGameCore implements IGameCore {
 
         this.removeGroup(group);
         this.applyGravityAndRefill();
+        this.addScore(this.calculateGroupScore(group.length));
         this.decreaseMoves();
     }
 
     getRemainingMoves(): number {
         return this.remainingMoves;
+    }
+
+    getScore(): number {
+        return this.score;
+    }
+
+    getTargetScore(): number {
+        return this.targetScore;
     }
 
     private createTilesRoot() {
@@ -282,6 +302,14 @@ export default class BlastGameCore implements IGameCore {
         }
     }
 
+    private calculateGroupScore(size: number): number {
+        if (size <= 0) {
+            return 0;
+        }
+
+        return size * size;
+    }
+
     private decreaseMoves() {
         if (this.remainingMoves <= 0) {
             return;
@@ -297,6 +325,34 @@ export default class BlastGameCore implements IGameCore {
         }
 
         this.movesChangedCallback(this.remainingMoves);
+    }
+
+    private addScore(value: number) {
+        if (value <= 0) {
+            return;
+        }
+
+        if (this.targetScore > 0) {
+            const next = this.score + value;
+
+            if (next >= this.targetScore) {
+                this.score = this.targetScore;
+            } else {
+                this.score = next;
+            }
+        } else {
+            this.score += value;
+        }
+
+        this.updateScoreView();
+    }
+
+    private updateScoreView() {
+        if (!this.scoreChangedCallback) {
+            return;
+        }
+
+        this.scoreChangedCallback(this.score, this.targetScore);
     }
 }
 

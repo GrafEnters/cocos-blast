@@ -28,6 +28,9 @@ export default class DiInitializer extends cc.Component {
     @property(cc.Label)
     movesLabel: cc.Label = null;
 
+    @property(cc.Label)
+    pointsLabel: cc.Label = null;
+
     @property(cc.SpriteFrame)
     tileSpriteFrame: cc.SpriteFrame = null;
 
@@ -63,6 +66,7 @@ export default class DiInitializer extends cc.Component {
         const tileSize = this.mainGameConfig ? this.mainGameConfig.tileSize : 64;
         const tileSpacing = this.mainGameConfig ? this.mainGameConfig.tileSpacing : 4;
         const moves = this.mainLevelConfig ? this.mainLevelConfig.moves : 0;
+        const targetScore = this.mainLevelConfig ? this.mainLevelConfig.targetScore : 0;
 
         const gameCore: IGameCore = new BlastGameCore(
             gameRootNode,
@@ -74,8 +78,16 @@ export default class DiInitializer extends cc.Component {
             tileSpacing,
             this.tileColorConfig,
             moves,
+            targetScore,
             this.movesLabel ? (value => {
                 this.movesLabel.string = value.toString();
+            }) : undefined,
+            this.pointsLabel ? ((score, target) => {
+                if (target > 0) {
+                    this.pointsLabel.string = score.toString() + " / " + target.toString();
+                } else {
+                    this.pointsLabel.string = score.toString();
+                }
             }) : undefined
         );
 

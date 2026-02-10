@@ -6,6 +6,8 @@ export default interface IGameCore {
     getSupportedEvents(): TileInputEventType[];
     handleEvent(event: TileInputEvent): void;
     getRemainingMoves(): number;
+    getScore(): number;
+    getTargetScore(): number;
 }
 
 
