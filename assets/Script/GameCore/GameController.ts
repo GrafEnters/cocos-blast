@@ -57,6 +57,15 @@ export default class GameController implements IGameCore {
         this.model = new BlastGameModel(rows, cols, this.colors, moves, targetScore);
         this.fieldView = new FieldView(rows, cols, this.colors, tileSize, tileSpacing, null, tileColorConfig);
 
+        const container = DiContainer.instance;
+        if (container.has(DiTokens.SuperTilesConfig)) {
+            const superTilesConfig = container.resolve<SuperTilesConfig>(DiTokens.SuperTilesConfig);
+            if (superTilesConfig) {
+                this.model.setSuperTileGenerationCallback((size: number) => {
+                    return superTilesConfig.getSuperTileTypeForSize(size);
+                });
+            }
+        }
     }
 
     init(): void {

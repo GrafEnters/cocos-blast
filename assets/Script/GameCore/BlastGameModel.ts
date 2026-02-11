@@ -18,6 +18,7 @@ export default class BlastGameModel {
     private remainingMoves: number;
     private score: number;
     private targetScore: number;
+    private getSuperTileTypeForSize: ((groupSize: number) => string | null) | null = null;
 
     constructor(rows: number, cols: number, colors: string[], moves: number, targetScore: number) {
         this.rows = rows;
@@ -27,6 +28,10 @@ export default class BlastGameModel {
         this.remainingMoves = this.totalMoves;
         this.score = 0;
         this.targetScore = targetScore > 0 ? targetScore : 0;
+    }
+
+    setSuperTileGenerationCallback(callback: ((groupSize: number) => string | null) | null): void {
+        this.getSuperTileTypeForSize = callback;
     }
 
     init(initialField?: (string | null)[][] | null): void {
@@ -136,6 +141,13 @@ export default class BlastGameModel {
             const cell = group[i];
             removed.push({ row: cell.row, col: cell.col });
             this.board[cell.row][cell.col] = null;
+        }
+
+        if (this.getSuperTileTypeForSize) {
+            const superTileType = this.getSuperTileTypeForSize(group.length);
+            if (superTileType && this.isInside(row, col)) {
+                this.board[row][col] = superTileType;
+            }
         }
 
         this.applyGravityAndRefill();

@@ -57,5 +57,26 @@ export default class SuperTilesConfig extends cc.Component {
         }
         return null;
     }
+
+    getSuperTileTypeForSize(groupSize: number): string | null {
+        if (groupSize < 2) {
+            return null;
+        }
+        const configs = this.getSuperTileConfigs();
+        let bestThreshold = -1;
+        let bestType: string | null = null;
+        for (let i = 0; i < configs.length; i++) {
+            const cfg = configs[i];
+            if (!cfg || typeof cfg.id !== "string") {
+                continue;
+            }
+            const threshold = typeof cfg.generationThreshold === "number" ? cfg.generationThreshold : -1;
+            if (threshold >= 0 && threshold <= groupSize && threshold > bestThreshold) {
+                bestThreshold = threshold;
+                bestType = cfg.id;
+            }
+        }
+        return bestType;
+    }
 }
 
