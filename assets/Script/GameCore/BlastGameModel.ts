@@ -191,62 +191,6 @@ export default class BlastGameModel {
         };
     }
 
-    handleBombNoMove(row: number, col: number, radius: number = 1): BlastGameStepResult | null {
-        if (!this.isInside(row, col)) {
-            return null;
-        }
-
-        const removed: { row: number; col: number }[] = [];
-
-        for (let r = row - radius; r <= row + radius; r++) {
-            for (let c = col - radius; c <= col + radius; c++) {
-                if (!this.isInside(r, c)) {
-                    continue;
-                }
-                const value = this.board[r][c];
-                if (value === null) {
-                    continue;
-                }
-                removed.push({ row: r, col: c });
-                this.board[r][c] = null;
-            }
-        }
-
-        if (removed.length === 0) {
-            return null;
-        }
-
-        const scoreDelta = this.calculateGroupScore(removed.length);
-        this.applyScore(scoreDelta);
-
-        return {
-            removed,
-            score: this.score,
-            targetScore: this.targetScore,
-            remainingMoves: this.remainingMoves,
-            scoreDelta,
-        };
-    }
-
-    handleRocketHNoMove(row: number): BlastGameStepResult | null {
-        return this.handleSuperTileInternal("rocketH", row, 0);
-    }
-
-
-    handleRocketVNoMove(col: number): BlastGameStepResult | null {
-        return this.handleSuperTileInternal("rocketV", 0, col);
-    }
-
-    handleDynamiteNoMove(row: number, col: number, _radius: number): BlastGameStepResult | null {
-        return this.handleSuperTileInternal("dynamite", row, col);
-    }
-
-
-    handleDynamiteMaxNoMove(): BlastGameStepResult | null {
-        return this.handleSuperTileInternal("dynamiteMax", 0, 0);
-    }
-
-
 
     handleBooster(boosterId: string, data?: any): BlastGameStepResult | null {
         if (this.remainingMoves <= 0) {
@@ -284,6 +228,10 @@ export default class BlastGameModel {
             return null;
         }
         return extension.handle(this, row, col, data);
+    }
+
+    handleSuperTileChain(id: string, row: number, col: number, data?: any): BlastGameStepResult | null {
+        return this.handleSuperTileInternal(id, row, col, data);
     }
 
     private isInside(row: number, col: number): boolean {
