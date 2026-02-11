@@ -51,7 +51,12 @@ export default class DiInitializer extends cc.Component {
 
     onLoad() {
         DiContainer.instance.register(DiTokens.DiInitializer, this);
-        this.initialize();
+
+        if (this.mainLevelConfig && typeof this.mainLevelConfig.loadLevels === "function") {
+            this.mainLevelConfig.loadLevels(() => this.initialize());
+        } else {
+            this.initialize();
+        }
     }
 
     private initialize() {

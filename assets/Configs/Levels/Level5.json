@@ -1,7 +1,7 @@
 {
-  "id": 4,
-  "name": "Level 4",
-  "description": "Шахматное поле без ходов — тест перемешивания.",
+  "id": 5,
+  "name": "Level 5",
+  "description": "Как уровень 4, в верхнем правом углу две соседние клетки одного цвета — один ход.",
   "rows": 8,
   "cols": 8,
   "colorsCount": 4,
@@ -16,6 +16,6 @@
     ["green", "red", "green", "red", "green", "red", "green", "red"],
     ["red", "green", "red", "green", "red", "green", "red", "green"],
     ["green", "red", "green", "red", "green", "red", "green", "red"],
-    ["red", "green", "red", "green", "red", "green", "red", "green"]
+    ["red", "green", "red", "green", "red", "green", "green", "green"]
   ]
 }

@@ -10,28 +10,23 @@ export default class AdminPanel extends cc.Component {
     @property(MainLevelsConfig)
     mainLevelConfig: MainLevelsConfig = null;
 
+    @property(cc.Node)
+    buttonsGroup: cc.Node = null;
+
+    @property(cc.Prefab)
+    levelButtonPrefab: cc.Prefab = null;
+
     onToggleClick() {
+        const willShow = !this.node.active;
         this.node.active = !this.node.active;
+        if (willShow) {
+            this.buildLevelButtons();
+        }
     }
 
     onButtonClick(button: cc.Event, customEventData: string) {
         if (customEventData === "Добавить 5 ходов") {
             this.onAddMoves();
-            return;
-        }
-
-        if (customEventData === "Запустить уровень 1") {
-            this.startLevel(1);
-            return;
-        }
-
-        if (customEventData === "Запустить уровень 2") {
-            this.startLevel(2);
-            return;
-        }
-
-        if (customEventData === "Запустить уровень 3") {
-            this.startLevel(3);
             return;
         }
     }
@@ -58,6 +53,46 @@ export default class AdminPanel extends cc.Component {
         }
 
         gameCore.addMoves(5);
+    }
+
+    private buildLevelButtons() {
+        if (!this.buttonsGroup || !this.levelButtonPrefab || !this.mainLevelConfig) {
+            return;
+        }
+
+        const levels = this.mainLevelConfig.levels;
+
+        if (!levels || levels.length === 0) {
+            return;
+        }
+
+        this.buttonsGroup.removeAllChildren();
+
+        for (let i = 0; i < levels.length; i++) {
+            const levelIndex = i + 1;
+            const node = cc.instantiate(this.levelButtonPrefab);
+            const label = node.getComponentInChildren(cc.Label);
+
+            if (label) {
+                const data = levels[i] && levels[i].json ? levels[i].json : null;
+                label.string = (data && data.name) ? data.name : "Level " + levelIndex;
+            }
+
+            node.name = "SelectLevel" + levelIndex + "Button";
+
+            const button = node.getComponent(cc.Button);
+
+            if (button) {
+                const handler = new cc.Component.EventHandler();
+                handler.target = this.node;
+                handler.component = "AdminPanel";
+                handler.handler = "onStartLevel";
+                handler.customEventData = String(levelIndex);
+                button.clickEvents.push(handler);
+            }
+
+            this.buttonsGroup.addChild(node);
+        }
     }
 
     private startLevel(index: number) {

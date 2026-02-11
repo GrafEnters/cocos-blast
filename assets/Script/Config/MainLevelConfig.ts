@@ -3,11 +3,37 @@ const { ccclass, property } = cc._decorator;
 @ccclass
 export default class MainLevelsConfig extends cc.Component {
 
-    @property([cc.JsonAsset])
-    levels: cc.JsonAsset[] = [];
+    @property
+    levelsPath: string = "Configs/Levels";
 
     @property
     currentLevelIndex: number = 0;
+
+    private _levels: cc.JsonAsset[] = [];
+
+    get levels(): cc.JsonAsset[] {
+        return this._levels;
+    }
+
+    loadLevels(callback: () => void): void {
+        if (this._levels.length > 0) {
+            callback();
+            return;
+        }
+
+        const path = this.levelsPath && this.levelsPath.trim() ? this.levelsPath.trim() : "Configs/Levels";
+
+        cc.resources.loadDir(path, cc.JsonAsset, (err, assets: cc.JsonAsset[]) => {
+            if (!err && assets && assets.length > 0) {
+                this._levels = assets.sort((a, b) => {
+                    const idA = (a.json && (a.json as any).id) != null ? (a.json as any).id : 0;
+                    const idB = (b.json && (b.json as any).id) != null ? (b.json as any).id : 0;
+                    return idA - idB;
+                });
+            }
+            callback();
+        });
+    }
 
     private get raw(): any {
         const levelAsset = this.currentLevelAsset;
@@ -15,7 +41,7 @@ export default class MainLevelsConfig extends cc.Component {
     }
 
     private get currentLevelAsset(): cc.JsonAsset | null {
-        if (!this.levels || this.levels.length === 0) {
+        if (!this._levels || this._levels.length === 0) {
             return null;
         }
 
@@ -25,11 +51,11 @@ export default class MainLevelsConfig extends cc.Component {
             index = 0;
         }
 
-        if (index >= this.levels.length) {
-            index = this.levels.length - 1;
+        if (index >= this._levels.length) {
+            index = this._levels.length - 1;
         }
 
-        return this.levels[index];
+        return this._levels[index];
     }
 
     get rows(): number {

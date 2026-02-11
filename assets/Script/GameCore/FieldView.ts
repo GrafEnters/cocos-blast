@@ -81,10 +81,21 @@ export default class FieldView implements IFieldView {
         }
 
         const center = this.getCenterPosition();
+        const delayBeforeShuffle = 0.25;
         const flyInDuration = 0.25;
         const flyOutDuration = 0.25;
 
         let completed = 0;
+        const startFlyIn = () => {
+        for (let i = 0; i < tilesList.length; i++) {
+            const tile = tilesList[i];
+            cc.tween(tile.node)
+                .to(flyInDuration, { position: center })
+                .call(onFlyInDone)
+                .start();
+        }
+        };
+
         const onFlyInDone = () => {
             completed++;
             if (completed < tilesList.length) {
@@ -141,13 +152,7 @@ export default class FieldView implements IFieldView {
             }
         };
 
-        for (let i = 0; i < tilesList.length; i++) {
-            const tile = tilesList[i];
-            cc.tween(tile.node)
-                .to(flyInDuration, { position: center })
-                .call(onFlyInDone)
-                .start();
-        }
+        setTimeout(startFlyIn, delayBeforeShuffle * 1000);
     }
 
     private getCenterPosition(): cc.Vec3 {
