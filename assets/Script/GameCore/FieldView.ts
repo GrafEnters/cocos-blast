@@ -63,6 +63,40 @@ export default class FieldView implements IFieldView {
         return this.tiles[row][col];
     }
 
+    getCellAtPosition(localPos: cc.Vec2): { row: number; col: number } | null {
+        const width = this.cols * this.tileSize + (this.cols - 1) * this.tileSpacing;
+        const height = this.rows * this.tileSize + (this.rows - 1) * this.tileSpacing;
+        const originX = -width * 0.5 + this.tileSize * 0.5;
+        const originY = -height * 0.5 + this.tileSize * 0.5;
+        const step = this.tileSize + this.tileSpacing;
+        const col = Math.floor((localPos.x - originX + this.tileSize * 0.5) / step);
+        const row = Math.floor((localPos.y - originY + this.tileSize * 0.5) / step);
+        if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) {
+            return null;
+        }
+        return { row, col };
+    }
+
+    setTileBombAppearance(tile: Tile, bombSpriteFrame: cc.SpriteFrame): void {
+        const sprite = tile.node.getComponent(cc.Sprite);
+        if (sprite && bombSpriteFrame) {
+            sprite.spriteFrame = bombSpriteFrame;
+        }
+    }
+
+    getTilesInRadius(centerRow: number, centerCol: number, radius: number): Tile[] {
+        const result: Tile[] = [];
+        for (let r = centerRow - radius; r <= centerRow + radius; r++) {
+            for (let c = centerCol - radius; c <= centerCol + radius; c++) {
+                const tile = this.getTile(r, c);
+                if (tile) {
+                    result.push(tile);
+                }
+            }
+        }
+        return result;
+    }
+
     playShuffleAnimation(newBoard: BlastGameBoardCell[][], onComplete: () => void): void {
         const tilesList: Tile[] = [];
 

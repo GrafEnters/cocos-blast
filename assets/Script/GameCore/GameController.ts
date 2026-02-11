@@ -173,6 +173,70 @@ export default class GameController implements IGameCore {
         this.updateMovesView();
     }
 
+    getCellAtPosition(worldPos: cc.Vec2): { row: number; col: number } | null {
+        const localPos = this.parentNode.convertToNodeSpaceAR(worldPos);
+        const fv = this.fieldView as FieldView;
+        if (fv.getCellAtPosition) {
+            return fv.getCellAtPosition(localPos);
+        }
+        return null;
+    }
+
+    applyBombAt(row: number, col: number, bombSpriteFrame: cc.SpriteFrame, onComplete: () => void): void {
+        if (this.isAnimating) {
+            onComplete();
+            return;
+        }
+        if (this.model.getRemainingMoves() <= 0) {
+            onComplete();
+            return;
+        }
+        const radius = 1;
+        const centerTile = this.fieldView.getTile(row, col);
+        if (!centerTile) {
+            onComplete();
+            return;
+        }
+        const fv = this.fieldView as FieldView;
+        if (!fv.setTileBombAppearance || !fv.getTilesInRadius) {
+            onComplete();
+            return;
+        }
+        fv.setTileBombAppearance(centerTile, bombSpriteFrame);
+        const tilesInRadius = fv.getTilesInRadius(row, col, radius);
+        if (tilesInRadius.length === 0) {
+            onComplete();
+            return;
+        }
+        this.isAnimating = true;
+        const completeStep = () => {
+            this.fieldView.rebuild(this.model.getBoard());
+            this.updateMovesView();
+            this.updateScoreView();
+            this.isAnimating = false;
+            this.checkEndGame();
+            onComplete();
+        };
+        const doExplodeAfterBurn = () => {
+            const result = this.model.handleBomb(row, col, radius);
+            if (!result) {
+                this.isAnimating = false;
+                onComplete();
+                return;
+            }
+            if (this.animationView && tilesInRadius.length > 0) {
+                this.animationView.playGroupRemoveAnimation(tilesInRadius, completeStep);
+            } else {
+                completeStep();
+            }
+        };
+        if (this.animationView && this.animationView.playBombBurnAnimation) {
+            this.animationView.playBombBurnAnimation(centerTile.node, 1.5, doExplodeAfterBurn);
+        } else {
+            doExplodeAfterBurn();
+        }
+    }
+
     private checkEndGame() {
         const targetScore = this.model.getTargetScore();
         const score = this.model.getScore();

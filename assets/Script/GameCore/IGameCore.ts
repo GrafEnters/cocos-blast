@@ -9,6 +9,8 @@ export default interface IGameCore {
     getScore(): number;
     getTargetScore(): number;
     addMoves(value: number): void;
+    getCellAtPosition?(worldPos: cc.Vec2): { row: number; col: number } | null;
+    applyBombAt?(row: number, col: number, bombSpriteFrame: cc.SpriteFrame, onComplete: () => void): void;
 }
 
 

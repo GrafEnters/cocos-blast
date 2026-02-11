@@ -11,6 +11,7 @@ import ShuffleNoMovesResolver from "../GameCore/ShuffleNoMovesResolver";
 import EndGamePanel from "../UI/EndGamePanel";
 import IInput from "../Input/IInput";
 import TapInput from "../Input/TapInput";
+import BombBoosterController from "../UI/BombBoosterController";
 
 @ccclass
 @executeInEditMode
@@ -39,6 +40,15 @@ export default class DiInitializer extends cc.Component {
 
     @property(cc.Node)
     boostersPanel: cc.Node = null;
+
+    @property(cc.SpriteFrame)
+    bombSpriteFrame: cc.SpriteFrame = null;
+
+    @property(cc.Node)
+    activeBoosterOverlay: cc.Node = null;
+
+    @property(cc.Node)
+    activeBoosterHintLabel: cc.Node = null;
 
     @property(cc.Node)
     movesPanel: cc.Node = null;
@@ -201,6 +211,14 @@ export default class DiInitializer extends cc.Component {
 
         gameCore.init();
         input.init();
+
+        if (this.bombSpriteFrame && this.boostersPanel && this.activeBoosterOverlay && this.activeBoosterHintLabel) {
+            const boostersContainer = this.boostersPanel.getChildByName("BoostersContainer");
+            const bombButton = boostersContainer && boostersContainer.children && boostersContainer.children.length > 1 ? boostersContainer.children[1] : null;
+            const bombBooster = new BombBoosterController();
+            bombBooster.init(this.activeBoosterOverlay, this.activeBoosterHintLabel, this.boostersPanel, gameCore, this.bombSpriteFrame, bombButton);
+            container.register(DiTokens.BombBooster, bombBooster);
+        }
     }
 
     update() {

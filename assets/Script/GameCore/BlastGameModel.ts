@@ -137,6 +137,54 @@ export default class BlastGameModel {
         };
     }
 
+    handleBomb(row: number, col: number, radius: number = 1): BlastGameStepResult | null {
+        if (this.remainingMoves <= 0) {
+            return null;
+        }
+
+        if (this.targetScore > 0 && this.score >= this.targetScore) {
+            return null;
+        }
+
+        if (!this.isInside(row, col)) {
+            return null;
+        }
+
+        const removed: { row: number; col: number; colorIndex: number }[] = [];
+
+        for (let r = row - radius; r <= row + radius; r++) {
+            for (let c = col - radius; c <= col + radius; c++) {
+                if (!this.isInside(r, c)) {
+                    continue;
+                }
+                const colorIndex = this.board[r][c];
+                if (colorIndex === null) {
+                    continue;
+                }
+                removed.push({ row: r, col: c, colorIndex });
+                this.board[r][c] = null;
+            }
+        }
+
+        if (removed.length === 0) {
+            return null;
+        }
+
+        this.applyGravityAndRefill();
+
+        const scoreDelta = this.calculateGroupScore(removed.length);
+        this.applyScore(scoreDelta);
+        this.decreaseMoves();
+
+        return {
+            removed,
+            score: this.score,
+            targetScore: this.targetScore,
+            remainingMoves: this.remainingMoves,
+            scoreDelta,
+        };
+    }
+
     private isInside(row: number, col: number): boolean {
         if (row < 0 || row >= this.rows) {
             return false;

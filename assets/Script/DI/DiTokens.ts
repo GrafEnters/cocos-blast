@@ -5,5 +5,6 @@ export default class DiTokens {
     static readonly MainLevelConfig = "MainLevelConfig";
     static readonly TileColorConfig = "TileColorConfig";
     static readonly DiInitializer = "DiInitializer";
+    static readonly BombBooster = "BombBooster";
 }
 
