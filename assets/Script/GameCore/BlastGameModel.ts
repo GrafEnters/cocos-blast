@@ -115,7 +115,7 @@ export default class BlastGameModel {
         this.remainingMoves += value;
     }
 
-    handleTap(row: number, col: number): BlastGameStepResult | null {
+    handleTap(row: number, col: number, data?: any): BlastGameStepResult | null {
         if (this.remainingMoves <= 0) {
             return null;
         }
@@ -139,11 +139,21 @@ export default class BlastGameModel {
             if (!superTileId) {
                 return null;
             }
-            const internalResult = this.handleSuperTileInternal(superTileId, row, col);
+
+            const chainData = data || {};
+            if (!Array.isArray(chainData.superTileQueue)) {
+                chainData.superTileQueue = [];
+            }
+            chainData.superTileQueue.push({ id: superTileId, row, col, depth: 0 });
+            chainData.depth = 0;
+
+            const internalResult = this.processSuperTileQueueInternal(chainData);
             if (!internalResult) {
                 return null;
             }
+
             this.decreaseMoves();
+
             return {
                 removed: internalResult.removed,
                 score: this.score,
@@ -230,8 +240,61 @@ export default class BlastGameModel {
         return extension.handle(this, row, col, data);
     }
 
-    handleSuperTileChain(id: string, row: number, col: number, data?: any): BlastGameStepResult | null {
-        return this.handleSuperTileInternal(id, row, col, data);
+    private processSuperTileQueueInternal(data: any): BlastGameStepResult | null {
+        if (!data || !Array.isArray(data.superTileQueue)) {
+            return null;
+        }
+
+        const queue = data.superTileQueue as { id: string; row: number; col: number; depth: number }[];
+        if (queue.length === 0) {
+            return null;
+        }
+
+        const removedCombined: { row: number; col: number }[] = [];
+        const usedRemoved: { [key: string]: boolean } = {};
+        const scoreBefore = this.score;
+
+        while (queue.length > 0) {
+            const item = queue.shift() as { id: string; row: number; col: number; depth: number };
+            if (!item || !item.id) {
+                continue;
+            }
+
+            data.depth = item.depth;
+
+            const result = this.handleSuperTileInternal(item.id, item.row, item.col, data);
+            if (!result || !result.removed || result.removed.length === 0) {
+                continue;
+            }
+
+            for (let i = 0; i < result.removed.length; i++) {
+                const cell = result.removed[i];
+                const key = cell.row + "_" + cell.col;
+                if (usedRemoved[key]) {
+                    continue;
+                }
+                usedRemoved[key] = true;
+                removedCombined.push({ row: cell.row, col: cell.col });
+            }
+        }
+
+        if (removedCombined.length === 0) {
+            return null;
+        }
+
+        const scoreDelta = this.score - scoreBefore;
+
+        return {
+            removed: removedCombined,
+            score: this.score,
+            targetScore: this.targetScore,
+            remainingMoves: this.remainingMoves,
+            scoreDelta,
+        };
+    }
+
+    processSuperTileQueuePublic(data: any): BlastGameStepResult | null {
+        return this.processSuperTileQueueInternal(data);
     }
 
     private isInside(row: number, col: number): boolean {

@@ -16,6 +16,8 @@ export default class DynamiteSupertileExtension implements ISupertileExtension {
         }
         const removed: { row: number; col: number }[] = [];
         const used: { [key: string]: boolean } = {};
+        const chainSteps = data && Array.isArray(data.superTileChainSteps) ? data.superTileChainSteps as { depth: number; cells: { row: number; col: number }[] }[] : null;
+        const directStep: { row: number; col: number }[] = [];
 
         const pushRemoved = (r: number, c: number) => {
             const key = r + "_" + c;
@@ -41,6 +43,7 @@ export default class DynamiteSupertileExtension implements ISupertileExtension {
                 if (r === row && c === col) {
                     model.setCellValue(r, c, null);
                     pushRemoved(r, c);
+                    directStep.push({ row: r, col: c });
                     directRemovedCount++;
                     continue;
                 }
@@ -49,22 +52,24 @@ export default class DynamiteSupertileExtension implements ISupertileExtension {
                     if (!id) {
                         continue;
                     }
-                    const chainResult = model.handleSuperTileChain(id, r, c);
-                    if (chainResult && chainResult.removed && chainResult.removed.length > 0) {
-                        for (let i = 0; i < chainResult.removed.length; i++) {
-                            const cell = chainResult.removed[i];
-                            pushRemoved(cell.row, cell.col);
-                        }
+                    if (data && Array.isArray(data.superTileQueue)) {
+                        const depth = typeof data.depth === "number" && data.depth >= 0 ? data.depth : 0;
+                        data.superTileQueue.push({ id, row: r, col: c, depth: depth + 1 });
                     }
                     continue;
                 }
                 model.setCellValue(r, c, null);
                 pushRemoved(r, c);
+                directStep.push({ row: r, col: c });
                 directRemovedCount++;
             }
         }
         if (removed.length === 0) {
             return null;
+        }
+        if (chainSteps && directStep.length > 0) {
+            const depth = data && typeof data.depth === "number" && data.depth >= 0 ? data.depth : 0;
+            chainSteps.push({ depth, cells: directStep });
         }
         if (directRemovedCount > 0) {
             const scoreDeltaDirect = model.calculateGroupScorePublic(directRemovedCount);

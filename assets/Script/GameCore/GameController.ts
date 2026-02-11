@@ -187,7 +187,8 @@ export default class GameController implements IGameCore {
             return;
         }
 
-        const result = this.model.handleTap(tile.row, tile.col);
+        const chainData: { superTileChainSteps: { depth: number; cells: { row: number; col: number }[] }[]; depth?: number } = { superTileChainSteps: [] };
+        const result = this.model.handleTap(tile.row, tile.col, chainData);
 
         if (!result) {
             return;
@@ -217,6 +218,77 @@ export default class GameController implements IGameCore {
         };
 
         if (this.animationView && tilesToPop.length > 0) {
+            const hasChain = chainData.superTileChainSteps && chainData.superTileChainSteps.length > 0;
+
+            if (hasChain) {
+                const steps: Tile[][] = [];
+                const used: { [key: string]: boolean } = {};
+                const depthsUsed: { [key: string]: boolean } = {};
+                const depths: number[] = [];
+
+                for (let i = 0; i < chainData.superTileChainSteps.length; i++) {
+                    const entry = chainData.superTileChainSteps[i];
+                    const depthKey = entry.depth.toString();
+                    if (!depthsUsed[depthKey]) {
+                        depthsUsed[depthKey] = true;
+                        depths.push(entry.depth);
+                    }
+                }
+
+                depths.sort((a, b) => a - b);
+
+                for (let d = 0; d < depths.length; d++) {
+                    const depth = depths[d];
+                    const stepTiles: Tile[] = [];
+
+                    for (let i = 0; i < chainData.superTileChainSteps.length; i++) {
+                        const entry = chainData.superTileChainSteps[i];
+                        if (entry.depth !== depth) {
+                            continue;
+                        }
+
+                        const stepCells = entry.cells;
+
+                        for (let j = 0; j < stepCells.length; j++) {
+                            const cell = stepCells[j];
+                            const key = cell.row + "_" + cell.col;
+                            if (used[key]) {
+                                continue;
+                            }
+                            const visualTile = this.fieldView.getTile(cell.row, cell.col);
+
+                            if (visualTile) {
+                                used[key] = true;
+                                stepTiles.push(visualTile);
+                            }
+                        }
+                    }
+
+                    if (stepTiles.length > 0) {
+                        steps.push(stepTiles);
+                    }
+                }
+
+                if (steps.length > 0) {
+                    let index = 0;
+
+                    const playNext = () => {
+                        if (index >= steps.length) {
+                            completeStep();
+                            return;
+                        }
+
+                        const group = steps[index];
+                        index++;
+
+                        this.animationView.playGroupRemoveAnimation(group, playNext);
+                    };
+
+                    playNext();
+                    return;
+                }
+            }
+
             this.animationView.playGroupRemoveAnimation(tilesToPop, completeStep);
         } else {
             completeStep();
@@ -258,7 +330,11 @@ export default class GameController implements IGameCore {
         }
 
         const applyBooster = () => {
-            const result = this.model.handleBooster(boosterId, data);
+            const chainData: { superTileChainSteps: { depth: number; cells: { row: number; col: number }[] }[]; depth?: number } = { superTileChainSteps: [] };
+            const boosterData = data || {};
+            (boosterData as any).chainData = chainData;
+
+            const result = this.model.handleBooster(boosterId, boosterData);
             if (!result) {
                 this.isAnimating = false;
                 if (onComplete) {
@@ -292,6 +368,77 @@ export default class GameController implements IGameCore {
             };
 
             if (this.animationView && tilesToPop.length > 0) {
+                const hasChain = chainData.superTileChainSteps && chainData.superTileChainSteps.length > 0;
+
+                if (hasChain) {
+                    const steps: Tile[][] = [];
+                    const used: { [key: string]: boolean } = {};
+                    const depthsUsed: { [key: string]: boolean } = {};
+                    const depths: number[] = [];
+
+                    for (let i = 0; i < chainData.superTileChainSteps.length; i++) {
+                        const entry = chainData.superTileChainSteps[i];
+                        const depthKey = entry.depth.toString();
+                        if (!depthsUsed[depthKey]) {
+                            depthsUsed[depthKey] = true;
+                            depths.push(entry.depth);
+                        }
+                    }
+
+                    depths.sort((a, b) => a - b);
+
+                    for (let d = 0; d < depths.length; d++) {
+                        const depth = depths[d];
+                        const stepTiles: Tile[] = [];
+
+                        for (let i = 0; i < chainData.superTileChainSteps.length; i++) {
+                            const entry = chainData.superTileChainSteps[i];
+                            if (entry.depth !== depth) {
+                                continue;
+                            }
+
+                            const stepCells = entry.cells;
+
+                            for (let j = 0; j < stepCells.length; j++) {
+                                const cell = stepCells[j];
+                                const key = cell.row + "_" + cell.col;
+                                if (used[key]) {
+                                    continue;
+                                }
+                                const visualTile = this.fieldView.getTile(cell.row, cell.col);
+
+                                if (visualTile) {
+                                    used[key] = true;
+                                    stepTiles.push(visualTile);
+                                }
+                            }
+                        }
+
+                        if (stepTiles.length > 0) {
+                            steps.push(stepTiles);
+                        }
+                    }
+
+                    if (steps.length > 0) {
+                        let index = 0;
+
+                        const playNext = () => {
+                            if (index >= steps.length) {
+                                completeStep();
+                                return;
+                            }
+
+                            const group = steps[index];
+                            index++;
+
+                            this.animationView.playGroupRemoveAnimation(group, playNext);
+                        };
+
+                        playNext();
+                        return;
+                    }
+                }
+
                 this.animationView.playGroupRemoveAnimation(tilesToPop, completeStep);
             } else {
                 completeStep();
