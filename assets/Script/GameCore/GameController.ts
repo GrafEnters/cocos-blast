@@ -398,6 +398,8 @@ export default class GameController implements IGameCore {
         }
         if (id === "rocketH") {
             this.handleRocketHTap(tile);
+        } else if (id === "rocketV") {
+            this.handleRocketVTap(tile);
         }
     }
 
@@ -412,6 +414,35 @@ export default class GameController implements IGameCore {
         }
         this.isAnimating = true;
         const result = this.model.handleRocketH(row);
+        if (!result) {
+            this.isAnimating = false;
+            return;
+        }
+        const completeStep = () => {
+            this.fieldView.rebuild(this.model.getBoard());
+            this.updateMovesView();
+            this.updateScoreView();
+            this.isAnimating = false;
+            this.checkEndGame();
+        };
+        if (this.animationView && removedTiles.length > 0) {
+            this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
+        } else {
+            completeStep();
+        }
+    }
+
+    private handleRocketVTap(tile: Tile): void {
+        const col = tile.col;
+        const removedTiles: Tile[] = [];
+        for (let row = 0; row < this.rows; row++) {
+            const visualTile = this.fieldView.getTile(row, col);
+            if (visualTile) {
+                removedTiles.push(visualTile);
+            }
+        }
+        this.isAnimating = true;
+        const result = this.model.handleRocketV(col);
         if (!result) {
             this.isAnimating = false;
             return;

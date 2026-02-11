@@ -248,6 +248,41 @@ export default class BlastGameModel {
         };
     }
 
+    handleRocketV(col: number): BlastGameStepResult | null {
+        if (this.remainingMoves <= 0) {
+            return null;
+        }
+        if (this.targetScore > 0 && this.score >= this.targetScore) {
+            return null;
+        }
+        if (col < 0 || col >= this.cols) {
+            return null;
+        }
+        const removed: { row: number; col: number }[] = [];
+        for (let row = 0; row < this.rows; row++) {
+            const value = this.board[row][col];
+            if (value === null) {
+                continue;
+            }
+            removed.push({ row, col });
+            this.board[row][col] = null;
+        }
+        if (removed.length === 0) {
+            return null;
+        }
+        this.applyGravityAndRefill();
+        const scoreDelta = this.calculateGroupScore(removed.length);
+        this.applyScore(scoreDelta);
+        this.decreaseMoves();
+        return {
+            removed,
+            score: this.score,
+            targetScore: this.targetScore,
+            remainingMoves: this.remainingMoves,
+            scoreDelta,
+        };
+    }
+
     handleTeleport(fromRow: number, fromCol: number, toRow: number, toCol: number): void {
         if (this.remainingMoves <= 0) {
             return;
