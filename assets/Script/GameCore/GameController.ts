@@ -12,6 +12,11 @@ import SuperTilesConfig from "../Config/SuperTilesConfig";
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
 import TileSpriteDictionary from "./TileSpriteDictionary";
+import SupertileExtensionFactory from "./SupertileExtensionFactory";
+import RocketHSupertileExtension from "./RocketHSupertileExtension";
+import RocketVSupertileExtension from "./RocketVSupertileExtension";
+import DynamiteSupertileExtension from "./DynamiteSupertileExtension";
+import DynamiteMaxSupertileExtension from "./DynamiteMaxSupertileExtension";
 
 export default class GameController implements IGameCore {
     private parentNode: cc.Node;
@@ -58,14 +63,35 @@ export default class GameController implements IGameCore {
         this.fieldView = new FieldView(rows, cols, this.colors, tileSize, tileSpacing, null, tileColorConfig);
 
         const container = DiContainer.instance;
+        let resolvedSuperTilesConfig: SuperTilesConfig | null = null;
         if (container.has(DiTokens.SuperTilesConfig)) {
             const superTilesConfig = container.resolve<SuperTilesConfig>(DiTokens.SuperTilesConfig);
             if (superTilesConfig) {
+                resolvedSuperTilesConfig = superTilesConfig;
                 this.model.setSuperTileGenerationCallback((size: number) => {
                     return superTilesConfig.getSuperTileTypeForSize(size);
                 });
             }
         }
+        if (!resolvedSuperTilesConfig && this.superTilesConfig) {
+            resolvedSuperTilesConfig = this.superTilesConfig;
+        }
+
+        const extensionFactory = new SupertileExtensionFactory();
+        extensionFactory.register(new RocketHSupertileExtension());
+        extensionFactory.register(new RocketVSupertileExtension());
+        extensionFactory.register(new DynamiteMaxSupertileExtension());
+
+        let dynamiteRadius = 2;
+        if (resolvedSuperTilesConfig) {
+            const cfg = resolvedSuperTilesConfig.getSuperTileConfig("dynamite");
+            if (cfg && typeof cfg.radius === "number" && cfg.radius >= 0) {
+                dynamiteRadius = cfg.radius;
+            }
+        }
+        extensionFactory.register(new DynamiteSupertileExtension(dynamiteRadius));
+
+        this.model.setSuperTileExtensionFactory(extensionFactory);
     }
 
     init(): void {

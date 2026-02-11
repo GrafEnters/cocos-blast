@@ -1,3 +1,5 @@
+import SupertileExtensionFactory from "./SupertileExtensionFactory";
+
 export type BlastGameBoardCell = string | null;
 
 export interface BlastGameStepResult {
@@ -19,6 +21,7 @@ export default class BlastGameModel {
     private score: number;
     private targetScore: number;
     private getSuperTileTypeForSize: ((groupSize: number) => string | null) | null = null;
+    private superTileExtensionFactory: SupertileExtensionFactory | null = null;
 
     constructor(rows: number, cols: number, colors: string[], moves: number, targetScore: number) {
         this.rows = rows;
@@ -32,6 +35,10 @@ export default class BlastGameModel {
 
     setSuperTileGenerationCallback(callback: ((groupSize: number) => string | null) | null): void {
         this.getSuperTileTypeForSize = callback;
+    }
+
+    setSuperTileExtensionFactory(factory: SupertileExtensionFactory | null): void {
+        this.superTileExtensionFactory = factory;
     }
 
     init(initialField?: (string | null)[][] | null): void {
@@ -218,183 +225,22 @@ export default class BlastGameModel {
         };
     }
 
-    handleRocketH(row: number): BlastGameStepResult | null {
-        if (this.remainingMoves <= 0) {
-            return null;
-        }
-        if (this.targetScore > 0 && this.score >= this.targetScore) {
-            return null;
-        }
-        const result = this.handleRocketHNoMove(row);
-        if (!result) {
-            return null;
-        }
-        this.applyGravityAndRefill();
-        this.decreaseMoves();
-        return result;
-    }
-
     handleRocketHNoMove(row: number): BlastGameStepResult | null {
-        if (row < 0 || row >= this.rows) {
-            return null;
-        }
-        const removed: { row: number; col: number }[] = [];
-        for (let col = 0; col < this.cols; col++) {
-            const value = this.board[row][col];
-            if (value === null) {
-                continue;
-            }
-            removed.push({ row, col });
-            this.board[row][col] = null;
-        }
-        if (removed.length === 0) {
-            return null;
-        }
-        const scoreDelta = this.calculateGroupScore(removed.length);
-        this.applyScore(scoreDelta);
-        return {
-            removed,
-            score: this.score,
-            targetScore: this.targetScore,
-            remainingMoves: this.remainingMoves,
-            scoreDelta,
-        };
+        return this.handleSuperTileInternal("rocketH", row, 0);
     }
 
-    handleRocketV(col: number): BlastGameStepResult | null {
-        if (this.remainingMoves <= 0) {
-            return null;
-        }
-        if (this.targetScore > 0 && this.score >= this.targetScore) {
-            return null;
-        }
-        const result = this.handleRocketVNoMove(col);
-        if (!result) {
-            return null;
-        }
-        this.applyGravityAndRefill();
-        this.decreaseMoves();
-        return result;
-    }
 
     handleRocketVNoMove(col: number): BlastGameStepResult | null {
-        if (col < 0 || col >= this.cols) {
-            return null;
-        }
-        const removed: { row: number; col: number }[] = [];
-        for (let row = 0; row < this.rows; row++) {
-            const value = this.board[row][col];
-            if (value === null) {
-                continue;
-            }
-            removed.push({ row, col });
-            this.board[row][col] = null;
-        }
-        if (removed.length === 0) {
-            return null;
-        }
-        const scoreDelta = this.calculateGroupScore(removed.length);
-        this.applyScore(scoreDelta);
-        return {
-            removed,
-            score: this.score,
-            targetScore: this.targetScore,
-            remainingMoves: this.remainingMoves,
-            scoreDelta,
-        };
+        return this.handleSuperTileInternal("rocketV", 0, col);
     }
 
-    handleDynamite(row: number, col: number, radius: number): BlastGameStepResult | null {
-        if (this.remainingMoves <= 0) {
-            return null;
-        }
-        if (this.targetScore > 0 && this.score >= this.targetScore) {
-            return null;
-        }
-        const result = this.handleDynamiteNoMove(row, col, radius);
-        if (!result) {
-            return null;
-        }
-        this.applyGravityAndRefill();
-        this.decreaseMoves();
-        return result;
+    handleDynamiteNoMove(row: number, col: number, _radius: number): BlastGameStepResult | null {
+        return this.handleSuperTileInternal("dynamite", row, col);
     }
 
-    handleDynamiteNoMove(row: number, col: number, radius: number): BlastGameStepResult | null {
-        if (!this.isInside(row, col)) {
-            return null;
-        }
-        if (radius < 0) {
-            return null;
-        }
-        const removed: { row: number; col: number }[] = [];
-        for (let r = row - radius; r <= row + radius; r++) {
-            for (let c = col - radius; c <= col + radius; c++) {
-                if (!this.isInside(r, c)) {
-                    continue;
-                }
-                const value = this.board[r][c];
-                if (value === null) {
-                    continue;
-                }
-                removed.push({ row: r, col: c });
-                this.board[r][c] = null;
-            }
-        }
-        if (removed.length === 0) {
-            return null;
-        }
-        const scoreDelta = this.calculateGroupScore(removed.length);
-        this.applyScore(scoreDelta);
-        return {
-            removed,
-            score: this.score,
-            targetScore: this.targetScore,
-            remainingMoves: this.remainingMoves,
-            scoreDelta,
-        };
-    }
-
-    handleDynamiteMax(): BlastGameStepResult | null {
-        if (this.remainingMoves <= 0) {
-            return null;
-        }
-        if (this.targetScore > 0 && this.score >= this.targetScore) {
-            return null;
-        }
-        const result = this.handleDynamiteMaxNoMove();
-        if (!result) {
-            return null;
-        }
-        this.applyGravityAndRefill();
-        this.decreaseMoves();
-        return result;
-    }
 
     handleDynamiteMaxNoMove(): BlastGameStepResult | null {
-        const removed: { row: number; col: number }[] = [];
-        for (let row = 0; row < this.rows; row++) {
-            for (let col = 0; col < this.cols; col++) {
-                const value = this.board[row][col];
-                if (value === null) {
-                    continue;
-                }
-                removed.push({ row, col });
-                this.board[row][col] = null;
-            }
-        }
-        if (removed.length === 0) {
-            return null;
-        }
-        const scoreDelta = this.calculateGroupScore(removed.length);
-        this.applyScore(scoreDelta);
-        return {
-            removed,
-            score: this.score,
-            targetScore: this.targetScore,
-            remainingMoves: this.remainingMoves,
-            scoreDelta,
-        };
+        return this.handleSuperTileInternal("dynamiteMax", 0, 0);
     }
 
     handleTeleport(fromRow: number, fromCol: number, toRow: number, toCol: number): void {
@@ -423,6 +269,17 @@ export default class BlastGameModel {
         this.decreaseMoves();
     }
 
+    private handleSuperTileInternal(id: string, row: number, col: number, data?: any): BlastGameStepResult | null {
+        if (!this.superTileExtensionFactory) {
+            return null;
+        }
+        const extension = this.superTileExtensionFactory.get(id);
+        if (!extension) {
+            return null;
+        }
+        return extension.handle(this, row, col, data);
+    }
+
     private isInside(row: number, col: number): boolean {
         if (row < 0 || row >= this.rows) {
             return false;
@@ -433,6 +290,48 @@ export default class BlastGameModel {
         }
 
         return true;
+    }
+
+    isInsidePublic(row: number, col: number): boolean {
+        if (row < 0 || row >= this.rows) {
+            return false;
+        }
+
+        if (col < 0 || col >= this.cols) {
+            return false;
+        }
+
+        return true;
+    }
+
+    getRows(): number {
+        return this.rows;
+    }
+
+    getCols(): number {
+        return this.cols;
+    }
+
+    getCellValue(row: number, col: number): string | null {
+        if (!this.isInsidePublic(row, col)) {
+            return null;
+        }
+        return this.board[row][col];
+    }
+
+    setCellValue(row: number, col: number, value: string | null): void {
+        if (!this.isInsidePublic(row, col)) {
+            return;
+        }
+        this.board[row][col] = value;
+    }
+
+    calculateGroupScorePublic(size: number): number {
+        return this.calculateGroupScore(size);
+    }
+
+    applyScorePublic(value: number): void {
+        this.applyScore(value);
     }
 
     private hasSameColorNeighbor(row: number, col: number, colorKey: string): boolean {
