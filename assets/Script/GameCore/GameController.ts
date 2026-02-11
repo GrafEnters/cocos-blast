@@ -257,44 +257,55 @@ export default class GameController implements IGameCore {
             return;
         }
 
-        const result = this.model.handleBooster(boosterId, data);
-        if (!result) {
-            if (onComplete) {
-                onComplete();
+        const applyBooster = () => {
+            const result = this.model.handleBooster(boosterId, data);
+            if (!result) {
+                this.isAnimating = false;
+                if (onComplete) {
+                    onComplete();
+                }
+                return;
             }
-            return;
-        }
 
-        const tilesToPop: Tile[] = [];
+            const tilesToPop: Tile[] = [];
 
-        for (let i = 0; i < result.removed.length; i++) {
-            const cell = result.removed[i];
-            const visualTile = this.fieldView.getTile(cell.row, cell.col);
+            for (let i = 0; i < result.removed.length; i++) {
+                const cell = result.removed[i];
+                const visualTile = this.fieldView.getTile(cell.row, cell.col);
 
-            if (visualTile) {
-                tilesToPop.push(visualTile);
+                if (visualTile) {
+                    tilesToPop.push(visualTile);
+                }
             }
-        }
 
-        this.isAnimating = true;
+            const completeStep = () => {
+                this.fieldView.rebuild(this.model.getBoard());
+                this.updateMovesView();
+                this.updateScoreView();
+                this.isAnimating = false;
+                this.checkEndGame();
+                this.model.applyGravityAndRefill();
+                this.fieldView.rebuild(this.model.getBoard());
+                if (onComplete) {
+                    onComplete();
+                }
+            };
 
-        const completeStep = () => {
-            this.fieldView.rebuild(this.model.getBoard());
-            this.updateMovesView();
-            this.updateScoreView();
-            this.isAnimating = false;
-            this.checkEndGame();
-            this.model.applyGravityAndRefill();
-            this.fieldView.rebuild(this.model.getBoard());
-            if (onComplete) {
-                onComplete();
+            if (this.animationView && tilesToPop.length > 0) {
+                this.animationView.playGroupRemoveAnimation(tilesToPop, completeStep);
+            } else {
+                completeStep();
             }
         };
 
-        if (this.animationView && tilesToPop.length > 0) {
-            this.animationView.playGroupRemoveAnimation(tilesToPop, completeStep);
+        const preAnimation = data && typeof data.preAnimation === "function" ? data.preAnimation : null;
+
+        this.isAnimating = true;
+
+        if (preAnimation && this.animationView) {
+            preAnimation(this.fieldView, this.animationView, applyBooster);
         } else {
-            completeStep();
+            applyBooster();
         }
     }
 
