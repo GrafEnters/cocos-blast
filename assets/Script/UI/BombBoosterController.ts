@@ -103,7 +103,7 @@ export default class BombBoosterController {
         if (this.bombInProgress) {
             return true;
         }
-        if (!this.gameCore.applyBombAt || !this.bombSpriteFrame) {
+        if (!this.gameCore.useBooster || !this.bombSpriteFrame) {
             this.exitBombMode();
             return true;
         }
@@ -111,7 +111,7 @@ export default class BombBoosterController {
             this.hintLabel.active = false;
         }
         this.bombInProgress = true;
-        this.gameCore.applyBombAt(tile.row, tile.col, this.bombSpriteFrame, () => {
+        this.gameCore.useBooster("bomb", { row: tile.row, col: tile.col, bombSpriteFrame: this.bombSpriteFrame }, () => {
             if (this.buttonView) {
                 this.buttonView.consume();
             }

@@ -10,8 +10,7 @@ export default interface IGameCore {
     getTargetScore(): number;
     addMoves(value: number): void;
     getCellAtPosition?(worldPos: cc.Vec2): { row: number; col: number } | null;
-    applyBombAt?(row: number, col: number, bombSpriteFrame: cc.SpriteFrame, onComplete: () => void): void;
-    applyTeleport?(fromRow: number, fromCol: number, toRow: number, toCol: number, onComplete: () => void): void;
+    useBooster?(boosterId: string, data?: any, onComplete?: () => void): void;
 }
 
 

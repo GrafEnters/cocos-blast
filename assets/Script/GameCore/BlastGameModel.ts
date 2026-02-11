@@ -1,4 +1,5 @@
 import SupertileExtensionFactory from "./SupertileExtensionFactory";
+import BoosterExtensionFactory from "./BoosterExtensionFactory";
 
 export type BlastGameBoardCell = string | null;
 
@@ -22,6 +23,7 @@ export default class BlastGameModel {
     private targetScore: number;
     private getSuperTileTypeForSize: ((groupSize: number) => string | null) | null = null;
     private superTileExtensionFactory: SupertileExtensionFactory | null = null;
+    private boosterExtensionFactory: BoosterExtensionFactory | null = null;
 
     constructor(rows: number, cols: number, colors: string[], moves: number, targetScore: number) {
         this.rows = rows;
@@ -39,6 +41,10 @@ export default class BlastGameModel {
 
     setSuperTileExtensionFactory(factory: SupertileExtensionFactory | null): void {
         this.superTileExtensionFactory = factory;
+    }
+
+    setBoosterExtensionFactory(factory: BoosterExtensionFactory | null): void {
+        this.boosterExtensionFactory = factory;
     }
 
     init(initialField?: (string | null)[][] | null): void {
@@ -185,24 +191,6 @@ export default class BlastGameModel {
         };
     }
 
-    handleBomb(row: number, col: number, radius: number = 1): BlastGameStepResult | null {
-        if (this.remainingMoves <= 0) {
-            return null;
-        }
-
-        if (this.targetScore > 0 && this.score >= this.targetScore) {
-            return null;
-        }
-
-        const result = this.handleBombNoMove(row, col, radius);
-        if (!result) {
-            return null;
-        }
-        this.applyGravityAndRefill();
-        this.decreaseMoves();
-        return result;
-    }
-
     handleBombNoMove(row: number, col: number, radius: number = 1): BlastGameStepResult | null {
         if (!this.isInside(row, col)) {
             return null;
@@ -258,30 +246,33 @@ export default class BlastGameModel {
         return this.handleSuperTileInternal("dynamiteMax", 0, 0);
     }
 
-    handleTeleport(fromRow: number, fromCol: number, toRow: number, toCol: number): void {
+
+
+    handleBooster(boosterId: string, data?: any): BlastGameStepResult | null {
         if (this.remainingMoves <= 0) {
-            return;
+            return null;
         }
+
         if (this.targetScore > 0 && this.score >= this.targetScore) {
-            return;
+            return null;
         }
-        if (!this.isInside(fromRow, fromCol)) {
-            return;
+
+        if (!this.boosterExtensionFactory) {
+            return null;
         }
-        if (!this.isInside(toRow, toCol)) {
-            return;
+
+        const extension = this.boosterExtensionFactory.get(boosterId);
+        if (!extension) {
+            return null;
         }
-        if (fromRow === toRow && fromCol === toCol) {
-            return;
+
+        const result = extension.handle(this, data);
+        if (!result) {
+            return null;
         }
-        const fromValue = this.board[fromRow][fromCol];
-        const toValue = this.board[toRow][toCol];
-        if (fromValue === null && toValue === null) {
-            return;
-        }
-        this.board[fromRow][fromCol] = toValue;
-        this.board[toRow][toCol] = fromValue;
+
         this.decreaseMoves();
+        return result;
     }
 
     private handleSuperTileInternal(id: string, row: number, col: number, data?: any): BlastGameStepResult | null {

@@ -132,7 +132,7 @@ export default class TeleportBoosterController {
             this.exitTeleportMode();
             return true;
         }
-        if (!this.gameCore || !this.gameCore.applyTeleport) {
+        if (!this.gameCore || !this.gameCore.useBooster) {
             this.exitTeleportMode();
             return true;
         }
@@ -142,7 +142,7 @@ export default class TeleportBoosterController {
         const fromTile = this.firstTile;
         this.firstTile = null;
         this.teleportInProgress = true;
-        this.gameCore.applyTeleport(fromTile.row, fromTile.col, tile.row, tile.col, () => {
+        this.gameCore.useBooster("teleport", { fromRow: fromTile.row, fromCol: fromTile.col, toRow: tile.row, toCol: tile.col }, () => {
             if (this.buttonView) {
                 this.buttonView.consume();
             }
