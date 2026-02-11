@@ -150,8 +150,6 @@ export default class BlastGameModel {
             }
         }
 
-        this.applyGravityAndRefill();
-
         const scoreDelta = this.calculateGroupScore(group.length);
         this.applyScore(scoreDelta);
         this.decreaseMoves();
@@ -174,6 +172,16 @@ export default class BlastGameModel {
             return null;
         }
 
+        const result = this.handleBombNoMove(row, col, radius);
+        if (!result) {
+            return null;
+        }
+        this.applyGravityAndRefill();
+        this.decreaseMoves();
+        return result;
+    }
+
+    handleBombNoMove(row: number, col: number, radius: number = 1): BlastGameStepResult | null {
         if (!this.isInside(row, col)) {
             return null;
         }
@@ -198,11 +206,8 @@ export default class BlastGameModel {
             return null;
         }
 
-        this.applyGravityAndRefill();
-
         const scoreDelta = this.calculateGroupScore(removed.length);
         this.applyScore(scoreDelta);
-        this.decreaseMoves();
 
         return {
             removed,
@@ -220,6 +225,16 @@ export default class BlastGameModel {
         if (this.targetScore > 0 && this.score >= this.targetScore) {
             return null;
         }
+        const result = this.handleRocketHNoMove(row);
+        if (!result) {
+            return null;
+        }
+        this.applyGravityAndRefill();
+        this.decreaseMoves();
+        return result;
+    }
+
+    handleRocketHNoMove(row: number): BlastGameStepResult | null {
         if (row < 0 || row >= this.rows) {
             return null;
         }
@@ -235,10 +250,8 @@ export default class BlastGameModel {
         if (removed.length === 0) {
             return null;
         }
-        this.applyGravityAndRefill();
         const scoreDelta = this.calculateGroupScore(removed.length);
         this.applyScore(scoreDelta);
-        this.decreaseMoves();
         return {
             removed,
             score: this.score,
@@ -255,6 +268,16 @@ export default class BlastGameModel {
         if (this.targetScore > 0 && this.score >= this.targetScore) {
             return null;
         }
+        const result = this.handleRocketVNoMove(col);
+        if (!result) {
+            return null;
+        }
+        this.applyGravityAndRefill();
+        this.decreaseMoves();
+        return result;
+    }
+
+    handleRocketVNoMove(col: number): BlastGameStepResult | null {
         if (col < 0 || col >= this.cols) {
             return null;
         }
@@ -270,10 +293,8 @@ export default class BlastGameModel {
         if (removed.length === 0) {
             return null;
         }
-        this.applyGravityAndRefill();
         const scoreDelta = this.calculateGroupScore(removed.length);
         this.applyScore(scoreDelta);
-        this.decreaseMoves();
         return {
             removed,
             score: this.score,
@@ -290,6 +311,16 @@ export default class BlastGameModel {
         if (this.targetScore > 0 && this.score >= this.targetScore) {
             return null;
         }
+        const result = this.handleDynamiteNoMove(row, col, radius);
+        if (!result) {
+            return null;
+        }
+        this.applyGravityAndRefill();
+        this.decreaseMoves();
+        return result;
+    }
+
+    handleDynamiteNoMove(row: number, col: number, radius: number): BlastGameStepResult | null {
         if (!this.isInside(row, col)) {
             return null;
         }
@@ -313,10 +344,8 @@ export default class BlastGameModel {
         if (removed.length === 0) {
             return null;
         }
-        this.applyGravityAndRefill();
         const scoreDelta = this.calculateGroupScore(removed.length);
         this.applyScore(scoreDelta);
-        this.decreaseMoves();
         return {
             removed,
             score: this.score,
@@ -333,6 +362,16 @@ export default class BlastGameModel {
         if (this.targetScore > 0 && this.score >= this.targetScore) {
             return null;
         }
+        const result = this.handleDynamiteMaxNoMove();
+        if (!result) {
+            return null;
+        }
+        this.applyGravityAndRefill();
+        this.decreaseMoves();
+        return result;
+    }
+
+    handleDynamiteMaxNoMove(): BlastGameStepResult | null {
         const removed: { row: number; col: number }[] = [];
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.cols; col++) {
@@ -347,10 +386,8 @@ export default class BlastGameModel {
         if (removed.length === 0) {
             return null;
         }
-        this.applyGravityAndRefill();
         const scoreDelta = this.calculateGroupScore(removed.length);
         this.applyScore(scoreDelta);
-        this.decreaseMoves();
         return {
             removed,
             score: this.score,
@@ -536,7 +573,7 @@ export default class BlastGameModel {
         return result;
     }
 
-    private applyGravityAndRefill() {
+    applyGravityAndRefill() {
         for (let col = 0; col < this.cols; col++) {
             let nextRow = 0;
 

@@ -170,6 +170,8 @@ export default class GameController implements IGameCore {
             this.updateScoreView();
             this.isAnimating = false;
             this.checkEndGame();
+            this.model.applyGravityAndRefill();
+            this.fieldView.rebuild(this.model.getBoard());
         };
 
         if (this.animationView && tilesToPop.length > 0) {
@@ -291,17 +293,31 @@ export default class GameController implements IGameCore {
             onComplete();
             return;
         }
+        const chainedSuperTiles: { row: number; col: number; id: string }[] = [];
+        for (let r = row - radius; r <= row + radius; r++) {
+            for (let c = col - radius; c <= col + radius; c++) {
+                const id = this.model.getSuperTileId(r, c);
+                if (!id) {
+                    continue;
+                }
+                chainedSuperTiles.push({ row: r, col: c, id });
+            }
+        }
         this.isAnimating = true;
         const completeStep = () => {
             this.fieldView.rebuild(this.model.getBoard());
             this.updateMovesView();
             this.updateScoreView();
-            this.isAnimating = false;
-            this.checkEndGame();
-            onComplete();
+            this.activateSuperTilesChain(chainedSuperTiles, () => {
+                this.isAnimating = false;
+                this.checkEndGame();
+                this.model.applyGravityAndRefill();
+                this.fieldView.rebuild(this.model.getBoard());
+                onComplete();
+            });
         };
         const doExplodeAfterBurn = () => {
-            const result = this.model.handleBomb(row, col, radius);
+            const result = this.model.handleBombNoMove(row, col, radius);
             if (!result) {
                 this.isAnimating = false;
                 onComplete();
@@ -416,8 +432,19 @@ export default class GameController implements IGameCore {
                 removedTiles.push(visualTile);
             }
         }
+        const chainedSuperTiles: { row: number; col: number; id: string }[] = [];
+        for (let col = 0; col < this.cols; col++) {
+            if (col === tile.col) {
+                continue;
+            }
+            const id = this.model.getSuperTileId(row, col);
+            if (!id) {
+                continue;
+            }
+            chainedSuperTiles.push({ row, col, id });
+        }
         this.isAnimating = true;
-        const result = this.model.handleRocketH(row);
+        const result = this.model.handleRocketHNoMove(row);
         if (!result) {
             this.isAnimating = false;
             return;
@@ -426,8 +453,12 @@ export default class GameController implements IGameCore {
             this.fieldView.rebuild(this.model.getBoard());
             this.updateMovesView();
             this.updateScoreView();
-            this.isAnimating = false;
-            this.checkEndGame();
+            this.activateSuperTilesChain(chainedSuperTiles, () => {
+                this.isAnimating = false;
+                this.checkEndGame();
+                this.model.applyGravityAndRefill();
+                this.fieldView.rebuild(this.model.getBoard());
+            });
         };
         if (this.animationView && removedTiles.length > 0) {
             this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
@@ -445,8 +476,19 @@ export default class GameController implements IGameCore {
                 removedTiles.push(visualTile);
             }
         }
+        const chainedSuperTiles: { row: number; col: number; id: string }[] = [];
+        for (let row = 0; row < this.rows; row++) {
+            if (row === tile.row) {
+                continue;
+            }
+            const id = this.model.getSuperTileId(row, col);
+            if (!id) {
+                continue;
+            }
+            chainedSuperTiles.push({ row, col, id });
+        }
         this.isAnimating = true;
-        const result = this.model.handleRocketV(col);
+        const result = this.model.handleRocketVNoMove(col);
         if (!result) {
             this.isAnimating = false;
             return;
@@ -455,8 +497,12 @@ export default class GameController implements IGameCore {
             this.fieldView.rebuild(this.model.getBoard());
             this.updateMovesView();
             this.updateScoreView();
-            this.isAnimating = false;
-            this.checkEndGame();
+            this.activateSuperTilesChain(chainedSuperTiles, () => {
+                this.isAnimating = false;
+                this.checkEndGame();
+                this.model.applyGravityAndRefill();
+                this.fieldView.rebuild(this.model.getBoard());
+            });
         };
         if (this.animationView && removedTiles.length > 0) {
             this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
@@ -468,6 +514,194 @@ export default class GameController implements IGameCore {
     private handleDynamiteTap(tile: Tile): void {
         const row = tile.row;
         const col = tile.col;
+        let radius = 2;
+        if (this.superTilesConfig) {
+            const cfg = this.superTilesConfig.getSuperTileConfig("dynamite");
+            if (cfg && typeof cfg.radius === "number" && cfg.radius >= 0) {
+                radius = cfg.radius;
+            }
+        }
+        const chainedSuperTiles: { row: number; col: number; id: string }[] = [];
+        for (let r = row - radius; r <= row + radius; r++) {
+            for (let c = col - radius; c <= col + radius; c++) {
+                if (r === row && c === col) {
+                    continue;
+                }
+                const id = this.model.getSuperTileId(r, c);
+                if (!id) {
+                    continue;
+                }
+                chainedSuperTiles.push({ row: r, col: c, id });
+            }
+        }
+        const removedTiles: Tile[] = [];
+        const fv = this.fieldView as FieldView;
+        if (fv.getTilesInRadius) {
+            const tilesInRadius = fv.getTilesInRadius(row, col, radius);
+            removedTiles.push(...tilesInRadius);
+        } else {
+            for (let r = row - radius; r <= row + radius; r++) {
+                for (let c = col - radius; c <= col + radius; c++) {
+                    const visualTile = this.fieldView.getTile(r, c);
+                    if (visualTile) {
+                        removedTiles.push(visualTile);
+                    }
+                }
+            }
+        }
+        this.isAnimating = true;
+        const result = this.model.handleDynamiteNoMove(row, col, radius);
+        if (!result) {
+            this.isAnimating = false;
+            return;
+        }
+        const completeStep = () => {
+            this.fieldView.rebuild(this.model.getBoard());
+            this.updateMovesView();
+            this.updateScoreView();
+            this.activateSuperTilesChain(chainedSuperTiles, () => {
+                this.isAnimating = false;
+                this.checkEndGame();
+                this.model.applyGravityAndRefill();
+                this.fieldView.rebuild(this.model.getBoard());
+            });
+        };
+        if (this.animationView && removedTiles.length > 0) {
+            this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
+        } else {
+            completeStep();
+        }
+    }
+
+    private handleDynamiteMaxTap(tile: Tile): void {
+        const originRow = tile.row;
+        const originCol = tile.col;
+        const chainedSuperTiles: { row: number; col: number; id: string }[] = [];
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                if (row === originRow && col === originCol) {
+                    continue;
+                }
+                const id = this.model.getSuperTileId(row, col);
+                if (!id) {
+                    continue;
+                }
+                chainedSuperTiles.push({ row, col, id });
+            }
+        }
+        const removedTiles: Tile[] = [];
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const visualTile = this.fieldView.getTile(row, col);
+                if (visualTile) {
+                    removedTiles.push(visualTile);
+                }
+            }
+        }
+        this.isAnimating = true;
+        const result = this.model.handleDynamiteMaxNoMove();
+        if (!result) {
+            this.isAnimating = false;
+            return;
+        }
+        const completeStep = () => {
+            this.fieldView.rebuild(this.model.getBoard());
+            this.updateMovesView();
+            this.updateScoreView();
+            this.activateSuperTilesChain(chainedSuperTiles, () => {
+                this.isAnimating = false;
+                this.checkEndGame();
+                this.model.applyGravityAndRefill();
+                this.fieldView.rebuild(this.model.getBoard());
+            });
+        };
+        if (this.animationView && removedTiles.length > 0) {
+            this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
+        } else {
+            completeStep();
+        }
+    }
+
+    private activateSuperTilesChain(superTiles: { row: number; col: number; id: string }[], onComplete: () => void): void {
+        if (!superTiles || superTiles.length === 0) {
+            onComplete();
+            return;
+        }
+        const queue = superTiles.slice();
+        const step = () => {
+            if (queue.length === 0) {
+                onComplete();
+                return;
+            }
+            const current = queue.shift() as { row: number; col: number; id: string };
+            if (current.id === "rocketH") {
+                this.handleRocketHChain(current.row, step);
+            } else if (current.id === "rocketV") {
+                this.handleRocketVChain(current.col, step);
+            } else if (current.id === "dynamite") {
+                this.handleDynamiteChain(current.row, current.col, step);
+            } else if (current.id === "dynamiteMax") {
+                this.handleDynamiteMaxChain(step);
+            } else {
+                step();
+            }
+        };
+        step();
+    }
+
+    private handleRocketHChain(row: number, onComplete: () => void): void {
+        const removedTiles: Tile[] = [];
+        for (let col = 0; col < this.cols; col++) {
+            const visualTile = this.fieldView.getTile(row, col);
+            if (visualTile) {
+                removedTiles.push(visualTile);
+            }
+        }
+        const result = this.model.handleRocketHNoMove(row);
+        if (!result) {
+            onComplete();
+            return;
+        }
+        const completeStep = () => {
+            this.fieldView.rebuild(this.model.getBoard());
+            this.updateMovesView();
+            this.updateScoreView();
+            onComplete();
+        };
+        if (this.animationView && removedTiles.length > 0) {
+            this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
+        } else {
+            completeStep();
+        }
+    }
+
+    private handleRocketVChain(col: number, onComplete: () => void): void {
+        const removedTiles: Tile[] = [];
+        for (let row = 0; row < this.rows; row++) {
+            const visualTile = this.fieldView.getTile(row, col);
+            if (visualTile) {
+                removedTiles.push(visualTile);
+            }
+        }
+        const result = this.model.handleRocketVNoMove(col);
+        if (!result) {
+            onComplete();
+            return;
+        }
+        const completeStep = () => {
+            this.fieldView.rebuild(this.model.getBoard());
+            this.updateMovesView();
+            this.updateScoreView();
+            onComplete();
+        };
+        if (this.animationView && removedTiles.length > 0) {
+            this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
+        } else {
+            completeStep();
+        }
+    }
+
+    private handleDynamiteChain(row: number, col: number, onComplete: () => void): void {
         let radius = 2;
         if (this.superTilesConfig) {
             const cfg = this.superTilesConfig.getSuperTileConfig("dynamite");
@@ -490,18 +724,16 @@ export default class GameController implements IGameCore {
                 }
             }
         }
-        this.isAnimating = true;
-        const result = this.model.handleDynamite(row, col, radius);
+        const result = this.model.handleDynamiteNoMove(row, col, radius);
         if (!result) {
-            this.isAnimating = false;
+            onComplete();
             return;
         }
         const completeStep = () => {
             this.fieldView.rebuild(this.model.getBoard());
             this.updateMovesView();
             this.updateScoreView();
-            this.isAnimating = false;
-            this.checkEndGame();
+            onComplete();
         };
         if (this.animationView && removedTiles.length > 0) {
             this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
@@ -510,7 +742,7 @@ export default class GameController implements IGameCore {
         }
     }
 
-    private handleDynamiteMaxTap(tile: Tile): void {
+    private handleDynamiteMaxChain(onComplete: () => void): void {
         const removedTiles: Tile[] = [];
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.cols; col++) {
@@ -520,18 +752,16 @@ export default class GameController implements IGameCore {
                 }
             }
         }
-        this.isAnimating = true;
-        const result = this.model.handleDynamiteMax();
+        const result = this.model.handleDynamiteMaxNoMove();
         if (!result) {
-            this.isAnimating = false;
+            onComplete();
             return;
         }
         const completeStep = () => {
             this.fieldView.rebuild(this.model.getBoard());
             this.updateMovesView();
             this.updateScoreView();
-            this.isAnimating = false;
-            this.checkEndGame();
+            onComplete();
         };
         if (this.animationView && removedTiles.length > 0) {
             this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
