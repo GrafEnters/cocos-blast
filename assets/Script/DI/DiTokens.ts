@@ -6,6 +6,7 @@ export default class DiTokens {
     static readonly TileColorConfig = "TileColorConfig";
     static readonly DiInitializer = "DiInitializer";
     static readonly BombBooster = "BombBooster";
+    static readonly TeleportBooster = "TeleportBooster";
     static readonly BoostersConfig = "BoostersConfig";
     static readonly PlayerProfile = "PlayerProfile";
 }

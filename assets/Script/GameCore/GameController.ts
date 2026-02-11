@@ -182,6 +182,66 @@ export default class GameController implements IGameCore {
         return null;
     }
 
+    applyTeleport(fromRow: number, fromCol: number, toRow: number, toCol: number, onComplete: () => void): void {
+        if (this.isAnimating) {
+            onComplete();
+            return;
+        }
+        if (this.model.getRemainingMoves() <= 0) {
+            onComplete();
+            return;
+        }
+        if (this.model.getTargetScore() > 0 && this.model.getScore() >= this.model.getTargetScore()) {
+            onComplete();
+            return;
+        }
+        const fromTile = this.fieldView.getTile(fromRow, fromCol);
+        const toTile = this.fieldView.getTile(toRow, toCol);
+        if (!fromTile || !toTile) {
+            onComplete();
+            return;
+        }
+        if (fromRow === toRow && fromCol === toCol) {
+            onComplete();
+            return;
+        }
+        const fromNode = fromTile.node;
+        const toNode = toTile.node;
+        if (!fromNode || !toNode || !fromNode.parent || fromNode.parent !== toNode.parent) {
+            onComplete();
+            return;
+        }
+        const parent = fromNode.parent;
+        const childrenCount = parent.childrenCount;
+        fromNode.setSiblingIndex(childrenCount - 1);
+        toNode.setSiblingIndex(childrenCount - 2 >= 0 ? childrenCount - 2 : childrenCount - 1);
+        const fromPos = fromNode.position.clone();
+        const toPos = toNode.position.clone();
+        this.isAnimating = true;
+        let completed = 0;
+        const onSwapComplete = () => {
+            completed++;
+            if (completed < 2) {
+                return;
+            }
+            this.model.handleTeleport(fromRow, fromCol, toRow, toCol);
+            this.fieldView.rebuild(this.model.getBoard());
+            this.updateMovesView();
+            this.updateScoreView();
+            this.isAnimating = false;
+            this.checkEndGame();
+            onComplete();
+        };
+        cc.tween(fromNode)
+            .to(0.15, { position: toPos })
+            .call(onSwapComplete)
+            .start();
+        cc.tween(toNode)
+            .to(0.15, { position: fromPos })
+            .call(onSwapComplete)
+            .start();
+    }
+
     applyBombAt(row: number, col: number, bombSpriteFrame: cc.SpriteFrame, onComplete: () => void): void {
         if (this.isAnimating) {
             onComplete();

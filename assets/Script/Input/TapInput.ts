@@ -6,11 +6,13 @@ import IGameCore from "../GameCore/IGameCore";
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
 import BombBoosterController from "../UI/BombBoosterController";
+import TeleportBoosterController from "../UI/TeleportBoosterController";
 
 export default class TapInput implements IInput {
 
     private gameCore: IGameCore;
     private bombBooster: BombBoosterController = null;
+    private teleportBooster: TeleportBoosterController = null;
 
     constructor(gameCore: IGameCore) {
         this.gameCore = gameCore;
@@ -34,6 +36,17 @@ export default class TapInput implements IInput {
         this.bombBooster = container.resolve<BombBoosterController>(DiTokens.BombBooster);
     }
 
+    private resolveTeleportBooster(): void {
+        if (this.teleportBooster) {
+            return;
+        }
+        const container = DiContainer.instance;
+        if (!container.has(DiTokens.TeleportBooster)) {
+            return;
+        }
+        this.teleportBooster = container.resolve<TeleportBoosterController>(DiTokens.TeleportBooster);
+    }
+
     handleTileTap(tile: Tile): void {
         const supportedCoreEvents = this.gameCore.getSupportedEvents();
 
@@ -42,6 +55,10 @@ export default class TapInput implements IInput {
         }
 
         this.resolveBombBooster();
+        this.resolveTeleportBooster();
+        if (this.teleportBooster && this.teleportBooster.handleTileTap(tile)) {
+            return;
+        }
         if (this.bombBooster && this.bombBooster.handleTileTap(tile)) {
             return;
         }

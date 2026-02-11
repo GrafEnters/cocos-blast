@@ -185,6 +185,32 @@ export default class BlastGameModel {
         };
     }
 
+    handleTeleport(fromRow: number, fromCol: number, toRow: number, toCol: number): void {
+        if (this.remainingMoves <= 0) {
+            return;
+        }
+        if (this.targetScore > 0 && this.score >= this.targetScore) {
+            return;
+        }
+        if (!this.isInside(fromRow, fromCol)) {
+            return;
+        }
+        if (!this.isInside(toRow, toCol)) {
+            return;
+        }
+        if (fromRow === toRow && fromCol === toCol) {
+            return;
+        }
+        const fromValue = this.board[fromRow][fromCol];
+        const toValue = this.board[toRow][toCol];
+        if (fromValue === null && toValue === null) {
+            return;
+        }
+        this.board[fromRow][fromCol] = toValue;
+        this.board[toRow][toCol] = fromValue;
+        this.decreaseMoves();
+    }
+
     private isInside(row: number, col: number): boolean {
         if (row < 0 || row >= this.rows) {
             return false;

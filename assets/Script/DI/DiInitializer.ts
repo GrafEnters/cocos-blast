@@ -15,6 +15,7 @@ import IInput from "../Input/IInput";
 import TapInput from "../Input/TapInput";
 import BombBoosterController from "../UI/BombBoosterController";
 import BoosterButtonView from "../UI/BoosterButtonView";
+import TeleportBoosterController from "../UI/TeleportBoosterController";
 
 @ccclass
 @executeInEditMode
@@ -269,6 +270,7 @@ export default class DiInitializer extends cc.Component {
             }
 
             let bombButtonNode: cc.Node = null;
+            let teleportButtonNode: cc.Node = null;
 
             for (let i = 0; i < configs.length; i++) {
                 const cfg: any = configs[i];
@@ -287,12 +289,21 @@ export default class DiInitializer extends cc.Component {
                 if (cfg.id === "bomb") {
                     bombButtonNode = node;
                 }
+                if (cfg.id === "teleport") {
+                    teleportButtonNode = node;
+                }
             }
 
             if (bombButtonNode && this.bombSpriteFrame && this.activeBoosterOverlay && this.activeBoosterHintLabel) {
                 const bombBooster = new BombBoosterController();
                 bombBooster.init(this.activeBoosterOverlay, this.activeBoosterHintLabel, this.boostersPanel, gameCore, this.bombSpriteFrame, bombButtonNode);
                 container.register(DiTokens.BombBooster, bombBooster);
+            }
+
+            if (teleportButtonNode && this.activeBoosterOverlay && this.activeBoosterHintLabel) {
+                const teleportBooster = new TeleportBoosterController();
+                teleportBooster.init(this.activeBoosterOverlay, this.activeBoosterHintLabel, this.boostersPanel, gameCore, teleportButtonNode);
+                container.register(DiTokens.TeleportBooster, teleportBooster);
             }
         };
 
