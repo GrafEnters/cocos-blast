@@ -59,11 +59,7 @@ export default class EndGamePanel extends cc.Component {
         }
 
         const currentIndex = this.mainLevelConfig.currentLevelIndex;
-        const nextIndex = currentIndex + 1;
-
-        if (nextIndex < 0 || nextIndex >= levels.length) {
-            return;
-        }
+        const nextIndex = (currentIndex + 1) % levels.length;
 
         this.mainLevelConfig.currentLevelIndex = nextIndex;
         this.restartWithCurrentLevel();

@@ -52,7 +52,7 @@ export default class MainLevelsConfig extends cc.Component {
         }
 
         if (index >= this._levels.length) {
-            index = this._levels.length - 1;
+            index = index % this._levels.length;
         }
 
         return this._levels[index];
