@@ -283,6 +283,83 @@ export default class BlastGameModel {
         };
     }
 
+    handleDynamite(row: number, col: number, radius: number): BlastGameStepResult | null {
+        if (this.remainingMoves <= 0) {
+            return null;
+        }
+        if (this.targetScore > 0 && this.score >= this.targetScore) {
+            return null;
+        }
+        if (!this.isInside(row, col)) {
+            return null;
+        }
+        if (radius < 0) {
+            return null;
+        }
+        const removed: { row: number; col: number }[] = [];
+        for (let r = row - radius; r <= row + radius; r++) {
+            for (let c = col - radius; c <= col + radius; c++) {
+                if (!this.isInside(r, c)) {
+                    continue;
+                }
+                const value = this.board[r][c];
+                if (value === null) {
+                    continue;
+                }
+                removed.push({ row: r, col: c });
+                this.board[r][c] = null;
+            }
+        }
+        if (removed.length === 0) {
+            return null;
+        }
+        this.applyGravityAndRefill();
+        const scoreDelta = this.calculateGroupScore(removed.length);
+        this.applyScore(scoreDelta);
+        this.decreaseMoves();
+        return {
+            removed,
+            score: this.score,
+            targetScore: this.targetScore,
+            remainingMoves: this.remainingMoves,
+            scoreDelta,
+        };
+    }
+
+    handleDynamiteMax(): BlastGameStepResult | null {
+        if (this.remainingMoves <= 0) {
+            return null;
+        }
+        if (this.targetScore > 0 && this.score >= this.targetScore) {
+            return null;
+        }
+        const removed: { row: number; col: number }[] = [];
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const value = this.board[row][col];
+                if (value === null) {
+                    continue;
+                }
+                removed.push({ row, col });
+                this.board[row][col] = null;
+            }
+        }
+        if (removed.length === 0) {
+            return null;
+        }
+        this.applyGravityAndRefill();
+        const scoreDelta = this.calculateGroupScore(removed.length);
+        this.applyScore(scoreDelta);
+        this.decreaseMoves();
+        return {
+            removed,
+            score: this.score,
+            targetScore: this.targetScore,
+            remainingMoves: this.remainingMoves,
+            scoreDelta,
+        };
+    }
+
     handleTeleport(fromRow: number, fromCol: number, toRow: number, toCol: number): void {
         if (this.remainingMoves <= 0) {
             return;

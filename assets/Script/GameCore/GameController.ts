@@ -400,6 +400,10 @@ export default class GameController implements IGameCore {
             this.handleRocketHTap(tile);
         } else if (id === "rocketV") {
             this.handleRocketVTap(tile);
+        } else if (id === "dynamite") {
+            this.handleDynamiteTap(tile);
+        } else if (id === "dynamiteMax") {
+            this.handleDynamiteMaxTap(tile);
         }
     }
 
@@ -443,6 +447,81 @@ export default class GameController implements IGameCore {
         }
         this.isAnimating = true;
         const result = this.model.handleRocketV(col);
+        if (!result) {
+            this.isAnimating = false;
+            return;
+        }
+        const completeStep = () => {
+            this.fieldView.rebuild(this.model.getBoard());
+            this.updateMovesView();
+            this.updateScoreView();
+            this.isAnimating = false;
+            this.checkEndGame();
+        };
+        if (this.animationView && removedTiles.length > 0) {
+            this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
+        } else {
+            completeStep();
+        }
+    }
+
+    private handleDynamiteTap(tile: Tile): void {
+        const row = tile.row;
+        const col = tile.col;
+        let radius = 2;
+        if (this.superTilesConfig) {
+            const cfg = this.superTilesConfig.getSuperTileConfig("dynamite");
+            if (cfg && typeof cfg.radius === "number" && cfg.radius >= 0) {
+                radius = cfg.radius;
+            }
+        }
+        const removedTiles: Tile[] = [];
+        const fv = this.fieldView as FieldView;
+        if (fv.getTilesInRadius) {
+            const tilesInRadius = fv.getTilesInRadius(row, col, radius);
+            removedTiles.push(...tilesInRadius);
+        } else {
+            for (let r = row - radius; r <= row + radius; r++) {
+                for (let c = col - radius; c <= col + radius; c++) {
+                    const visualTile = this.fieldView.getTile(r, c);
+                    if (visualTile) {
+                        removedTiles.push(visualTile);
+                    }
+                }
+            }
+        }
+        this.isAnimating = true;
+        const result = this.model.handleDynamite(row, col, radius);
+        if (!result) {
+            this.isAnimating = false;
+            return;
+        }
+        const completeStep = () => {
+            this.fieldView.rebuild(this.model.getBoard());
+            this.updateMovesView();
+            this.updateScoreView();
+            this.isAnimating = false;
+            this.checkEndGame();
+        };
+        if (this.animationView && removedTiles.length > 0) {
+            this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
+        } else {
+            completeStep();
+        }
+    }
+
+    private handleDynamiteMaxTap(tile: Tile): void {
+        const removedTiles: Tile[] = [];
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const visualTile = this.fieldView.getTile(row, col);
+                if (visualTile) {
+                    removedTiles.push(visualTile);
+                }
+            }
+        }
+        this.isAnimating = true;
+        const result = this.model.handleDynamiteMax();
         if (!result) {
             this.isAnimating = false;
             return;
