@@ -2,6 +2,9 @@ import Tile from "../Tile";
 import TileColorConfig from "../Config/TileColorConfig";
 import { BlastGameBoardCell } from "./BlastGameModel";
 import IFieldView from "./IFieldView";
+import DiContainer from "../DI/DiContainer";
+import DiTokens from "../DI/DiTokens";
+import TileSpriteDictionary from "./TileSpriteDictionary";
 
 export default class FieldView implements IFieldView {
     private rows: number;
@@ -14,6 +17,7 @@ export default class FieldView implements IFieldView {
     private tiles: Tile[][] = [];
     private tileColorConfig: TileColorConfig = null;
     private defaultTileSpriteFrame: cc.SpriteFrame;
+    private tileSpriteDictionary: TileSpriteDictionary = null;
 
     constructor(rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, defaultTileSpriteFrame: cc.SpriteFrame, tileColorConfig: TileColorConfig) {
         this.rows = rows;
@@ -23,6 +27,14 @@ export default class FieldView implements IFieldView {
         this.tileSpacing = tileSpacing;
         this.defaultTileSpriteFrame = defaultTileSpriteFrame;
         this.tileColorConfig = tileColorConfig;
+
+        const container = DiContainer.instance;
+        if (container.has(DiTokens.TileSpriteDictionary)) {
+            this.tileSpriteDictionary = container.resolve<TileSpriteDictionary>(DiTokens.TileSpriteDictionary);
+            if (!this.defaultTileSpriteFrame && this.tileSpriteDictionary.getDefaultSprite()) {
+                this.defaultTileSpriteFrame = this.tileSpriteDictionary.getDefaultSprite();
+            }
+        }
     }
 
     init(parentNode: cc.Node): void {
@@ -38,14 +50,15 @@ export default class FieldView implements IFieldView {
         for (let row = 0; row < this.rows; row++) {
             this.tiles[row] = [];
             for (let col = 0; col < this.cols; col++) {
-                const value = board[row][col] as BlastGameBoardCell;
+                const cell = board[row][col] as BlastGameBoardCell;
 
-                if (value === null) {
+                if (cell === null) {
                     this.tiles[row][col] = null;
                     continue;
                 }
 
-                const tile = this.createTile(row, col, value);
+                const colorKey: string = this.normalizeKey(cell);
+                const tile = this.createTile(row, col, colorKey);
                 this.tiles[row][col] = tile;
             }
         }
@@ -75,6 +88,13 @@ export default class FieldView implements IFieldView {
             return null;
         }
         return { row, col };
+    }
+
+    setTileSuperAppearance(tile: Tile, spriteFrame: cc.SpriteFrame): void {
+        const sprite = tile.node.getComponent(cc.Sprite);
+        if (sprite && spriteFrame) {
+            sprite.spriteFrame = spriteFrame;
+        }
     }
 
     setTileBombAppearance(tile: Tile, bombSpriteFrame: cc.SpriteFrame): void {
@@ -140,14 +160,15 @@ export default class FieldView implements IFieldView {
                 const tile = tilesList[i];
                 const row = Math.floor(i / this.cols);
                 const col = i % this.cols;
-                const colorIndex = newBoard[row][col];
-                if (colorIndex === null) {
+                const cell = newBoard[row][col];
+                if (cell === null) {
                     continue;
                 }
+                const colorKey: string = this.normalizeKey(cell);
                 tile.row = row;
                 tile.col = col;
-                tile.colorIndex = colorIndex;
-                this.updateTileAppearance(tile, colorIndex);
+                tile.tileType = colorKey;
+                this.updateTileAppearance(tile, colorKey);
             }
 
             const newTiles: (Tile | null)[][] = [];
@@ -203,38 +224,36 @@ export default class FieldView implements IFieldView {
         return cc.v3(x, y, 0);
     }
 
-    private updateTileAppearance(tile: Tile, colorIndex: number): void {
-        tile.colorIndex = colorIndex;
-        const colorKey = this.colorKeyForIndex(colorIndex);
-        const spriteFrame = this.spriteForColorKey(colorKey);
+    private updateTileAppearance(tile: Tile, key: string): void {
+        tile.tileType = key;
+        const spriteFrame = this.spriteForKey(key);
         const sprite = tile.node.getComponent(cc.Sprite);
         if (sprite) {
             sprite.spriteFrame = spriteFrame;
             if (spriteFrame === this.defaultTileSpriteFrame) {
-                tile.node.color = this.colorForIndex(colorIndex);
+                tile.node.color = this.colorForKey(key);
             }
         }
     }
 
-    private createTile(row: number, col: number, colorIndex: number): Tile {
+    private createTile(row: number, col: number, key: string): Tile {
         const node = new cc.Node();
         const sprite = node.addComponent(cc.Sprite);
 
-        const colorKey = this.colorKeyForIndex(colorIndex);
-        const spriteFrame = this.spriteForColorKey(colorKey);
+        const spriteFrame = this.spriteForKey(key);
 
         sprite.spriteFrame = spriteFrame;
         sprite.sizeMode = cc.Sprite.SizeMode.CUSTOM;
         node.setContentSize(this.tileSize, this.tileSize);
 
         if (spriteFrame === this.defaultTileSpriteFrame) {
-            node.color = this.colorForIndex(colorIndex);
+            node.color = this.colorForKey(key);
         }
 
         const tile = node.addComponent(Tile);
         tile.row = row;
         tile.col = col;
-        tile.colorIndex = colorIndex;
+        tile.tileType = key;
 
         this.tilesRoot.addChild(node);
         this.updateTilePosition(tile);
@@ -246,27 +265,32 @@ export default class FieldView implements IFieldView {
         tile.node.position = this.getPositionForCell(tile.row, tile.col);
     }
 
-    private colorKeyForIndex(index: number): string {
-        if (index < 0 || index >= this.colors.length) {
+    private normalizeKey(value: string | null): string {
+        if (value === null) {
             return "default";
         }
-
-        return this.colors[index];
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : "default";
     }
 
-    private spriteForColorKey(key: string): cc.SpriteFrame {
-        if (this.tileColorConfig) {
-            const sprite = this.tileColorConfig.getSprite(key);
-
+    private spriteForKey(key: string): cc.SpriteFrame {
+        if (this.tileSpriteDictionary) {
+            const sprite = this.tileSpriteDictionary.get(key);
             if (sprite) {
                 return sprite;
             }
         }
-
+        if (this.tileColorConfig) {
+            const sprite = this.tileColorConfig.getSprite(key);
+            if (sprite) {
+                return sprite;
+            }
+        }
         return this.defaultTileSpriteFrame;
     }
 
-    private colorForIndex(index: number): cc.Color {
+    private colorForKey(key: string): cc.Color {
+        const index = this.colors.indexOf(key);
         switch (index) {
             case 0:
                 return cc.Color.RED;

@@ -7,6 +7,7 @@ export default interface IFieldView {
     getTile(row: number, col: number): Tile | null;
     getCellAtPosition?(localPos: cc.Vec2): { row: number; col: number } | null;
     setTileBombAppearance?(tile: Tile, bombSpriteFrame: cc.SpriteFrame): void;
+    setTileSuperAppearance?(tile: Tile, spriteFrame: cc.SpriteFrame): void;
     getTilesInRadius?(centerRow: number, centerCol: number, radius: number): Tile[];
     playShuffleAnimation?(newBoard: BlastGameBoardCell[][], onComplete: () => void): void;
 }

@@ -1,7 +1,7 @@
-export type BlastGameBoardCell = number | null;
+export type BlastGameBoardCell = string | null;
 
 export interface BlastGameStepResult {
-    removed: { row: number; col: number; colorIndex: number }[];
+    removed: { row: number; col: number }[];
     score: number;
     targetScore: number;
     remainingMoves: number;
@@ -29,20 +29,20 @@ export default class BlastGameModel {
         this.targetScore = targetScore > 0 ? targetScore : 0;
     }
 
-    init(initialField?: (number | null)[][] | null): void {
+    init(initialField?: (string | null)[][] | null): void {
         this.board = [];
 
         for (let row = 0; row < this.rows; row++) {
             this.board[row] = [];
             for (let col = 0; col < this.cols; col++) {
-                let value: number | null = null;
-                if (initialField && row < initialField.length && initialField[row] && col < initialField[row].length) {
-                    const cell = initialField[row][col];
-                    if (typeof cell === "number" && cell >= 0 && cell < this.colors.length) {
-                        value = cell;
+                let value: string | null = null;
+                if (initialField && row < initialField.length && initialField[row] && col < (initialField[row] as (string | null)[]).length) {
+                    const cell = (initialField[row] as (string | null)[])[col];
+                    if (typeof cell === "string" && cell.trim().length > 0) {
+                        value = cell.trim();
                     }
                 }
-                this.board[row][col] = value !== null ? value : this.randomColorIndex();
+                this.board[row][col] = value !== null ? value : this.randomColorKey();
             }
         }
     }
@@ -69,6 +69,14 @@ export default class BlastGameModel {
                 const value = this.board[row][col];
 
                 if (value === null) {
+                    continue;
+                }
+
+                if (this.isSuperTile(row, col)) {
+                    continue;
+                }
+
+                if (!this.isColor(value)) {
                     continue;
                 }
 
@@ -102,23 +110,31 @@ export default class BlastGameModel {
             return null;
         }
 
-        const colorIndex = this.board[row][col];
+        const cellValue = this.board[row][col];
 
-        if (colorIndex === null) {
+        if (cellValue === null) {
             return null;
         }
 
-        const group = this.collectGroup(row, col, colorIndex);
+        if (this.isSuperTile(row, col)) {
+            return null;
+        }
+
+        if (!this.isColor(cellValue)) {
+            return null;
+        }
+
+        const group = this.collectGroup(row, col, cellValue);
 
         if (group.length < 2) {
             return null;
         }
 
-        const removed = [];
+        const removed: { row: number; col: number }[] = [];
 
         for (let i = 0; i < group.length; i++) {
             const cell = group[i];
-            removed.push({ row: cell.row, col: cell.col, colorIndex: colorIndex });
+            removed.push({ row: cell.row, col: cell.col });
             this.board[cell.row][cell.col] = null;
         }
 
@@ -150,18 +166,18 @@ export default class BlastGameModel {
             return null;
         }
 
-        const removed: { row: number; col: number; colorIndex: number }[] = [];
+        const removed: { row: number; col: number }[] = [];
 
         for (let r = row - radius; r <= row + radius; r++) {
             for (let c = col - radius; c <= col + radius; c++) {
                 if (!this.isInside(r, c)) {
                     continue;
                 }
-                const colorIndex = this.board[r][c];
-                if (colorIndex === null) {
+                const value = this.board[r][c];
+                if (value === null) {
                     continue;
                 }
-                removed.push({ row: r, col: c, colorIndex });
+                removed.push({ row: r, col: c });
                 this.board[r][c] = null;
             }
         }
@@ -176,6 +192,41 @@ export default class BlastGameModel {
         this.applyScore(scoreDelta);
         this.decreaseMoves();
 
+        return {
+            removed,
+            score: this.score,
+            targetScore: this.targetScore,
+            remainingMoves: this.remainingMoves,
+            scoreDelta,
+        };
+    }
+
+    handleRocketH(row: number): BlastGameStepResult | null {
+        if (this.remainingMoves <= 0) {
+            return null;
+        }
+        if (this.targetScore > 0 && this.score >= this.targetScore) {
+            return null;
+        }
+        if (row < 0 || row >= this.rows) {
+            return null;
+        }
+        const removed: { row: number; col: number }[] = [];
+        for (let col = 0; col < this.cols; col++) {
+            const value = this.board[row][col];
+            if (value === null) {
+                continue;
+            }
+            removed.push({ row, col });
+            this.board[row][col] = null;
+        }
+        if (removed.length === 0) {
+            return null;
+        }
+        this.applyGravityAndRefill();
+        const scoreDelta = this.calculateGroupScore(removed.length);
+        this.applyScore(scoreDelta);
+        this.decreaseMoves();
         return {
             removed,
             score: this.score,
@@ -223,7 +274,10 @@ export default class BlastGameModel {
         return true;
     }
 
-    private hasSameColorNeighbor(row: number, col: number, color: number): boolean {
+    private hasSameColorNeighbor(row: number, col: number, colorKey: string): boolean {
+        if (this.isSuperTile(row, col)) {
+            return false;
+        }
         const neighbors = this.getNeighbors(row, col);
 
         for (let i = 0; i < neighbors.length; i++) {
@@ -233,13 +287,21 @@ export default class BlastGameModel {
                 continue;
             }
 
-            const neighborColor = this.board[neighbor.row][neighbor.col];
+            const neighborValue = this.board[neighbor.row][neighbor.col];
 
-            if (neighborColor === null) {
+            if (neighborValue === null) {
                 continue;
             }
 
-            if (neighborColor === color) {
+            if (this.isSuperTile(neighbor.row, neighbor.col)) {
+                continue;
+            }
+
+            if (!this.isColor(neighborValue)) {
+                continue;
+            }
+
+            if (neighborValue === colorKey) {
                 return true;
             }
         }
@@ -247,11 +309,18 @@ export default class BlastGameModel {
         return false;
     }
 
-    private randomColorIndex(): number {
-        return Math.floor(Math.random() * this.colors.length);
+    private randomColorKey(): string {
+        if (!this.colors || this.colors.length === 0) {
+            return "default";
+        }
+        const index = Math.floor(Math.random() * this.colors.length);
+        return this.colors[index];
     }
 
-    private collectGroup(startRow: number, startCol: number, targetColor: number): { row: number; col: number }[] {
+    private collectGroup(startRow: number, startCol: number, targetColorKey: string): { row: number; col: number }[] {
+        if (this.isSuperTile(startRow, startCol)) {
+            return [];
+        }
         const result: { row: number; col: number }[] = [];
         const visited: boolean[][] = [];
         const stack: { row: number; col: number }[] = [];
@@ -288,13 +357,21 @@ export default class BlastGameModel {
                     continue;
                 }
 
-                const neighborColor = this.board[neighbor.row][neighbor.col];
+                const neighborValue = this.board[neighbor.row][neighbor.col];
 
-                if (neighborColor === null) {
+                if (neighborValue === null) {
                     continue;
                 }
 
-                if (neighborColor !== targetColor) {
+                if (this.isSuperTile(neighbor.row, neighbor.col)) {
+                    continue;
+                }
+
+                if (!this.isColor(neighborValue)) {
+                    continue;
+                }
+
+                if (neighborValue !== targetColorKey) {
                     continue;
                 }
 
@@ -355,7 +432,7 @@ export default class BlastGameModel {
             }
 
             for (let row = nextRow; row < this.rows; row++) {
-                this.board[row][col] = this.randomColorIndex();
+                this.board[row][col] = this.randomColorKey();
             }
         }
     }
@@ -395,7 +472,7 @@ export default class BlastGameModel {
     }
 
     shuffleBoard(): void {
-        const values: number[] = [];
+        const values: string[] = [];
 
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.cols; col++) {
@@ -422,5 +499,38 @@ export default class BlastGameModel {
             }
         }
     }
+
+    isSuperTile(row: number, col: number): boolean {
+        if (!this.isInside(row, col)) {
+            return false;
+        }
+        const value = this.board[row][col];
+        if (value === null) {
+            return false;
+        }
+        return !this.isColor(value);
+    }
+
+    getSuperTileId(row: number, col: number): string | null {
+        if (!this.isInside(row, col)) {
+            return null;
+        }
+        const value = this.board[row][col];
+        if (value === null) {
+            return null;
+        }
+        if (this.isColor(value)) {
+            return null;
+        }
+        return value;
+    }
+
+    private isColor(value: string | null): boolean {
+        if (value === null) {
+            return false;
+        }
+        return this.colors.indexOf(value) >= 0;
+    }
+
 }
 

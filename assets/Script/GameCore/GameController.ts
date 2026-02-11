@@ -8,6 +8,10 @@ import IAnimationView from "./IAnimationView";
 import IFieldView from "./IFieldView";
 import FieldView from "./FieldView";
 import INoMovesResolver from "./INoMovesResolver";
+import SuperTilesConfig from "../Config/SuperTilesConfig";
+import DiContainer from "../DI/DiContainer";
+import DiTokens from "../DI/DiTokens";
+import TileSpriteDictionary from "./TileSpriteDictionary";
 
 export default class GameController implements IGameCore {
     private parentNode: cc.Node;
@@ -22,7 +26,9 @@ export default class GameController implements IGameCore {
     private model: BlastGameModel = null;
     private fieldView: IFieldView = null;
     private noMovesResolver: INoMovesResolver | null = null;
-    private initialField: (number | null)[][] | null = null;
+    private initialField: (string | null)[][] | null = null;
+
+    private superTilesConfig: SuperTilesConfig | null = null;
 
     private isAnimating: boolean = false;
 
@@ -31,7 +37,7 @@ export default class GameController implements IGameCore {
     private winCallback: (() => void) | null = null;
     private loseCallback: (() => void) | null = null;
 
-    constructor(parentNode: cc.Node, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView, winCallback?: () => void, loseCallback?: () => void, noMovesResolver?: INoMovesResolver | null, initialField?: (number | null)[][] | null) {
+    constructor(parentNode: cc.Node, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView, winCallback?: () => void, loseCallback?: () => void, noMovesResolver?: INoMovesResolver | null, initialField?: (string | null)[][] | null, superTilesConfig?: SuperTilesConfig | null) {
         this.parentNode = parentNode;
         this.rows = rows;
         this.cols = cols;
@@ -46,9 +52,11 @@ export default class GameController implements IGameCore {
         this.loseCallback = loseCallback || null;
         this.noMovesResolver = noMovesResolver === undefined ? null : noMovesResolver;
         this.initialField = initialField === undefined ? null : initialField;
+        this.superTilesConfig = superTilesConfig === undefined ? null : superTilesConfig;
 
         this.model = new BlastGameModel(rows, cols, this.colors, moves, targetScore);
         this.fieldView = new FieldView(rows, cols, this.colors, tileSize, tileSpacing, null, tileColorConfig);
+
     }
 
     init(): void {
@@ -119,6 +127,12 @@ export default class GameController implements IGameCore {
         const tile = event.tile;
 
         if (!tile) {
+            return;
+        }
+
+        const superTileId = this.model.getSuperTileId(tile.row, tile.col);
+        if (superTileId) {
+            this.handleSuperTileTap(tile, superTileId);
             return;
         }
 
@@ -368,5 +382,44 @@ export default class GameController implements IGameCore {
 
         this.scoreChangedCallback(this.model.getScore(), this.model.getTargetScore());
     }
+
+    private handleSuperTileTap(tile: Tile, id: string): void {
+        if (this.isAnimating) {
+            return;
+        }
+        if (id === "rocketH") {
+            this.handleRocketHTap(tile);
+        }
+    }
+
+    private handleRocketHTap(tile: Tile): void {
+        const row = tile.row;
+        const removedTiles: Tile[] = [];
+        for (let col = 0; col < this.cols; col++) {
+            const visualTile = this.fieldView.getTile(row, col);
+            if (visualTile) {
+                removedTiles.push(visualTile);
+            }
+        }
+        this.isAnimating = true;
+        const result = this.model.handleRocketH(row);
+        if (!result) {
+            this.isAnimating = false;
+            return;
+        }
+        const completeStep = () => {
+            this.fieldView.rebuild(this.model.getBoard());
+            this.updateMovesView();
+            this.updateScoreView();
+            this.isAnimating = false;
+            this.checkEndGame();
+        };
+        if (this.animationView && removedTiles.length > 0) {
+            this.animationView.playGroupRemoveAnimation(removedTiles, completeStep);
+        } else {
+            completeStep();
+        }
+    }
+
 }
 

@@ -8,7 +8,7 @@ export default class Tile extends cc.Component {
 
     row: number = 0;
     col: number = 0;
-    colorIndex: number = 0;
+    tileType: string = null;
 
     private input: IInput = null;
 

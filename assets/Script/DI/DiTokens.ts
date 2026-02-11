@@ -9,5 +9,7 @@ export default class DiTokens {
     static readonly TeleportBooster = "TeleportBooster";
     static readonly BoostersConfig = "BoostersConfig";
     static readonly PlayerProfile = "PlayerProfile";
+    static readonly SuperTilesConfig = "SuperTilesConfig";
+    static readonly TileSpriteDictionary = "TileSpriteDictionary";
 }
 

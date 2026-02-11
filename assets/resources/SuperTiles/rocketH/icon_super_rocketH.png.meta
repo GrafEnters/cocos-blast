@@ -12,7 +12,7 @@
   "height": 112,
   "platformSettings": {},
   "subMetas": {
-    "block_rockets_horisontal": {
+    "icon_super_rocketH": {
       "ver": "1.0.6",
       "uuid": "b6fc1c47-f5dc-41f6-8da9-f9ab75283072",
       "importer": "sprite-frame",
