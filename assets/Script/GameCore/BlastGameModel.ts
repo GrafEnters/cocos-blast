@@ -129,7 +129,22 @@ export default class BlastGameModel {
         }
 
         if (this.isSuperTile(row, col)) {
-            return null;
+            const superTileId = this.getSuperTileId(row, col);
+            if (!superTileId) {
+                return null;
+            }
+            const internalResult = this.handleSuperTileInternal(superTileId, row, col);
+            if (!internalResult) {
+                return null;
+            }
+            this.decreaseMoves();
+            return {
+                removed: internalResult.removed,
+                score: this.score,
+                targetScore: this.targetScore,
+                remainingMoves: this.remainingMoves,
+                scoreDelta: internalResult.scoreDelta,
+            };
         }
 
         if (!this.isColor(cellValue)) {
