@@ -3,6 +3,8 @@ import DiContainer from "./DiContainer";
 import DiTokens from "./DiTokens";
 import MainGameConfig from "../Config/MainGameConfig";
 import MainLevelsConfig from "../Config/MainLevelConfig";
+import BoostersConfig from "../Config/BoostersConfig";
+import PlayerProfile from "../PlayerProfile";
 import TileColorConfig from "../Config/TileColorConfig";
 import IGameCore from "../GameCore/IGameCore";
 import GameController from "../GameCore/GameController";
@@ -12,6 +14,7 @@ import EndGamePanel from "../UI/EndGamePanel";
 import IInput from "../Input/IInput";
 import TapInput from "../Input/TapInput";
 import BombBoosterController from "../UI/BombBoosterController";
+import BoosterButtonView from "../UI/BoosterButtonView";
 
 @ccclass
 @executeInEditMode
@@ -25,6 +28,9 @@ export default class DiInitializer extends cc.Component {
 
     @property(TileColorConfig)
     tileColorConfig: TileColorConfig = null;
+
+    @property(BoostersConfig)
+    boostersConfig: BoostersConfig = null;
 
     @property
     rebuild: boolean = false;
@@ -40,6 +46,9 @@ export default class DiInitializer extends cc.Component {
 
     @property(cc.Node)
     boostersPanel: cc.Node = null;
+
+    @property(cc.Prefab)
+    boosterButtonPrefab: cc.Prefab = null;
 
     @property(cc.SpriteFrame)
     bombSpriteFrame: cc.SpriteFrame = null;
@@ -82,6 +91,10 @@ export default class DiInitializer extends cc.Component {
 
         if (this.tileColorConfig) {
             container.register(DiTokens.TileColorConfig, this.tileColorConfig);
+        }
+
+        if (this.boostersConfig) {
+            container.register(DiTokens.BoostersConfig, this.boostersConfig);
         }
 
         const gameRootNode = this.gameRoot ? this.gameRoot : this.node;
@@ -209,15 +222,84 @@ export default class DiInitializer extends cc.Component {
 
         container.register(DiTokens.Input, input);
 
+        let profile: PlayerProfile;
+        if (container.has(DiTokens.PlayerProfile)) {
+            profile = container.resolve<PlayerProfile>(DiTokens.PlayerProfile);
+        } else {
+            profile = new PlayerProfile();
+            container.register(DiTokens.PlayerProfile, profile);
+        }
+
         gameCore.init();
         input.init();
+        this.initializeBoostersUI(container, gameCore);
+    }
 
-        if (this.bombSpriteFrame && this.boostersPanel && this.activeBoosterOverlay && this.activeBoosterHintLabel) {
-            const boostersContainer = this.boostersPanel.getChildByName("BoostersContainer");
-            const bombButton = boostersContainer && boostersContainer.children && boostersContainer.children.length > 1 ? boostersContainer.children[1] : null;
-            const bombBooster = new BombBoosterController();
-            bombBooster.init(this.activeBoosterOverlay, this.activeBoosterHintLabel, this.boostersPanel, gameCore, this.bombSpriteFrame, bombButton);
-            container.register(DiTokens.BombBooster, bombBooster);
+    private initializeBoostersUI(container: DiContainer, gameCore: IGameCore): void {
+        if (!this.boostersConfig || !this.boostersPanel || !this.boosterButtonPrefab) {
+            return;
+        }
+
+        const boostersContainer = this.boostersPanel.getChildByName("BoostersContainer") || this.boostersPanel;
+
+        // Удаляем ранее созданные кнопки бустеров, если инициализация вызывается повторно
+        const existingChildren = boostersContainer.children.slice();
+        for (let i = 0; i < existingChildren.length; i++) {
+            const child = existingChildren[i];
+            const view = child.getComponent(BoosterButtonView);
+            if (view) {
+                child.removeFromParent();
+                child.destroy();
+            }
+        }
+
+        const applyConfigs = () => {
+            const configs = this.boostersConfig.getBoosterConfigs();
+            if (!configs || configs.length === 0) {
+                return;
+            }
+
+            let profile: PlayerProfile = null;
+            if (container.has(DiTokens.PlayerProfile)) {
+                profile = container.resolve<PlayerProfile>(DiTokens.PlayerProfile);
+            }
+
+            if (profile) {
+                profile.ensureBoostersInitialized(this.boostersConfig);
+            }
+
+            let bombButtonNode: cc.Node = null;
+
+            for (let i = 0; i < configs.length; i++) {
+                const cfg: any = configs[i];
+                if (!cfg || typeof cfg.id !== "string") {
+                    continue;
+                }
+
+                const node = cc.instantiate(this.boosterButtonPrefab);
+                boostersContainer.addChild(node);
+
+                const view = node.getComponent(BoosterButtonView);
+                if (view) {
+                    view.initFromConfig(cfg.id);
+                }
+
+                if (cfg.id === "bomb") {
+                    bombButtonNode = node;
+                }
+            }
+
+            if (bombButtonNode && this.bombSpriteFrame && this.activeBoosterOverlay && this.activeBoosterHintLabel) {
+                const bombBooster = new BombBoosterController();
+                bombBooster.init(this.activeBoosterOverlay, this.activeBoosterHintLabel, this.boostersPanel, gameCore, this.bombSpriteFrame, bombButtonNode);
+                container.register(DiTokens.BombBooster, bombBooster);
+            }
+        };
+
+        if (typeof this.boostersConfig.loadBoosters === "function") {
+            this.boostersConfig.loadBoosters(applyConfigs);
+        } else {
+            applyConfigs();
         }
     }
 

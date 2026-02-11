@@ -1,5 +1,6 @@
 import IGameCore from "../GameCore/IGameCore";
 import Tile from "../Tile";
+import BoosterButtonView from "./BoosterButtonView";
 
 export default class BombBoosterController {
     private overlay: cc.Node = null;
@@ -8,6 +9,7 @@ export default class BombBoosterController {
     private gameCore: IGameCore = null;
     private bombSpriteFrame: cc.SpriteFrame = null;
     private bombButton: cc.Node = null;
+    private buttonView: BoosterButtonView = null;
     private active: boolean = false;
     private bombInProgress: boolean = false;
 
@@ -37,11 +39,15 @@ export default class BombBoosterController {
 
         if (this.bombButton) {
             this.bombButton.on(cc.Node.EventType.TOUCH_END, this.onBombButtonClick, this);
+            this.buttonView = this.bombButton.getComponent(BoosterButtonView);
         }
     }
 
     private onBombButtonClick(): void {
         if (this.active) {
+            return;
+        }
+        if (this.buttonView && !this.buttonView.canUse()) {
             return;
         }
         this.enterBombMode();
@@ -106,6 +112,9 @@ export default class BombBoosterController {
         }
         this.bombInProgress = true;
         this.gameCore.applyBombAt(tile.row, tile.col, this.bombSpriteFrame, () => {
+            if (this.buttonView) {
+                this.buttonView.consume();
+            }
             this.bombInProgress = false;
             this.exitBombMode();
         });

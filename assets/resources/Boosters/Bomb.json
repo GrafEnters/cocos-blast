@@ -1,0 +1,7 @@
+{
+  "id": "bomb",
+  "boosterIcon": "Boosters/bomb/icon_booster_bomb",
+  "initialCount": 5,
+  "radius": 1
+}
+
