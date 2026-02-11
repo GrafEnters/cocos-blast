@@ -7,6 +7,7 @@ import TileColorConfig from "../Config/TileColorConfig";
 import IGameCore from "../GameCore/IGameCore";
 import GameController from "../GameCore/GameController";
 import BlastGameCoreView from "../GameCore/BlastGameCoreView";
+import ShuffleNoMovesResolver from "../GameCore/ShuffleNoMovesResolver";
 import EndGamePanel from "../UI/EndGamePanel";
 import IInput from "../Input/IInput";
 import TapInput from "../Input/TapInput";
@@ -44,6 +45,9 @@ export default class DiInitializer extends cc.Component {
 
     @property(cc.Node)
     endGamePanelNode: cc.Node = null;
+
+    @property
+    enableShuffle: boolean = true;
 
     onLoad() {
         DiContainer.instance.register(DiTokens.DiInitializer, this);
@@ -93,9 +97,33 @@ export default class DiInitializer extends cc.Component {
         const moves = this.mainLevelConfig ? this.mainLevelConfig.moves : 0;
         const targetScore = this.mainLevelConfig ? this.mainLevelConfig.targetScore : 0;
 
+        const rawField = this.mainLevelConfig ? this.mainLevelConfig.initialField : null;
+        let initialField: (number | null)[][] | null = null;
+        if (rawField && Array.isArray(rawField) && rawField.length > 0) {
+            initialField = [];
+            for (let r = 0; r < rawField.length; r++) {
+                const row: (number | null)[] = [];
+                const rawRow = rawField[r];
+                if (Array.isArray(rawRow)) {
+                    for (let c = 0; c < rawRow.length; c++) {
+                        const cell = rawRow[c];
+                        if (typeof cell === "string") {
+                            const idx = colors.indexOf(cell);
+                            row.push(idx >= 0 ? idx : null);
+                        } else {
+                            row.push(null);
+                        }
+                    }
+                }
+                initialField.push(row);
+            }
+        }
+
         const gameCoreView = new BlastGameCoreView();
 
         const endGamePanel = this.endGamePanelNode ? this.endGamePanelNode.getComponent(EndGamePanel) : null;
+
+        const noMovesResolver = this.enableShuffle ? new ShuffleNoMovesResolver(3) : null;
 
         const gameCore: IGameCore = new GameController(
             gameRootNode,
@@ -155,7 +183,9 @@ export default class DiInitializer extends cc.Component {
                 }
 
                 endGamePanel.showLose();
-            }) : undefined
+            }) : undefined,
+            noMovesResolver,
+            initialField
         );
 
         container.register(DiTokens.GameCore, gameCore);

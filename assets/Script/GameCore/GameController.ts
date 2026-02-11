@@ -7,6 +7,7 @@ import BlastGameModel from "./BlastGameModel";
 import IAnimationView from "./IAnimationView";
 import IFieldView from "./IFieldView";
 import FieldView from "./FieldView";
+import INoMovesResolver from "./INoMovesResolver";
 
 export default class GameController implements IGameCore {
     private parentNode: cc.Node;
@@ -20,6 +21,8 @@ export default class GameController implements IGameCore {
     private animationView: IAnimationView = null;
     private model: BlastGameModel = null;
     private fieldView: IFieldView = null;
+    private noMovesResolver: INoMovesResolver | null = null;
+    private initialField: (number | null)[][] | null = null;
 
     private isAnimating: boolean = false;
 
@@ -28,7 +31,7 @@ export default class GameController implements IGameCore {
     private winCallback: (() => void) | null = null;
     private loseCallback: (() => void) | null = null;
 
-    constructor(parentNode: cc.Node, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView, winCallback?: () => void, loseCallback?: () => void) {
+    constructor(parentNode: cc.Node, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView, winCallback?: () => void, loseCallback?: () => void, noMovesResolver?: INoMovesResolver | null, initialField?: (number | null)[][] | null) {
         this.parentNode = parentNode;
         this.rows = rows;
         this.cols = cols;
@@ -41,19 +44,55 @@ export default class GameController implements IGameCore {
         this.animationView = animationView || null;
         this.winCallback = winCallback || null;
         this.loseCallback = loseCallback || null;
+        this.noMovesResolver = noMovesResolver === undefined ? null : noMovesResolver;
+        this.initialField = initialField === undefined ? null : initialField;
 
         this.model = new BlastGameModel(rows, cols, this.colors, moves, targetScore);
         this.fieldView = new FieldView(rows, cols, this.colors, tileSize, tileSpacing, null, tileColorConfig);
     }
 
     init(): void {
-        this.model.init();
+        this.model.init(this.initialField);
 
         this.fieldView.init(this.parentNode);
         this.fieldView.rebuild(this.model.getBoard());
 
-        this.updateMovesView();
-        this.updateScoreView();
+        this.ensureMovesAvailable(() => {
+            this.updateMovesView();
+            this.updateScoreView();
+        });
+    }
+
+    private ensureMovesAvailable(onDone: () => void): void {
+        if (!this.noMovesResolver) {
+            onDone();
+            return;
+        }
+
+        const shuffle = (onComplete: () => void) => {
+            this.model.shuffleBoard();
+            if (this.fieldView.playShuffleAnimation) {
+                this.fieldView.playShuffleAnimation(this.model.getBoard(), onComplete);
+            } else {
+                this.fieldView.rebuild(this.model.getBoard());
+                onComplete();
+            }
+        };
+
+        const step = () => {
+            if (this.model.hasAvailableMoves()) {
+                onDone();
+                return;
+            }
+            if (!this.noMovesResolver.tryResolve(shuffle, step)) {
+                if (this.loseCallback) {
+                    this.loseCallback();
+                }
+                return;
+            }
+        };
+
+        step();
     }
 
     getSupportedEvents(): TileInputEventType[] {
@@ -152,7 +191,38 @@ export default class GameController implements IGameCore {
             return;
         }
 
-        if (isLoseByMoves || isLoseByNoMoves) {
+        if (isLoseByMoves) {
+            if (this.loseCallback) {
+                this.loseCallback();
+            }
+            return;
+        }
+
+        if (isLoseByNoMoves && this.noMovesResolver) {
+            this.isAnimating = true;
+
+            const shuffle = (onComplete: () => void) => {
+                this.model.shuffleBoard();
+                if (this.fieldView.playShuffleAnimation) {
+                    this.fieldView.playShuffleAnimation(this.model.getBoard(), () => {
+                        this.isAnimating = false;
+                        onComplete();
+                    });
+                } else {
+                    this.fieldView.rebuild(this.model.getBoard());
+                    this.isAnimating = false;
+                    onComplete();
+                }
+            };
+
+            if (this.noMovesResolver.tryResolve(shuffle)) {
+                return;
+            }
+
+            this.isAnimating = false;
+        }
+
+        if (isLoseByNoMoves) {
             if (this.loseCallback) {
                 this.loseCallback();
             }

@@ -67,5 +67,16 @@ export default class MainLevelsConfig extends cc.Component {
 
         return ["red", "green", "blue", "yellow"];
     }
+
+    get initialField(): (string | null)[][] | null {
+        const data: any = this.raw;
+        const value = data.initialField;
+
+        if (!Array.isArray(value) || value.length === 0) {
+            return null;
+        }
+
+        return value;
+    }
 }
 

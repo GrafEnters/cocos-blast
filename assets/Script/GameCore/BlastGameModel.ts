@@ -29,13 +29,20 @@ export default class BlastGameModel {
         this.targetScore = targetScore > 0 ? targetScore : 0;
     }
 
-    init(): void {
+    init(initialField?: (number | null)[][] | null): void {
         this.board = [];
 
         for (let row = 0; row < this.rows; row++) {
             this.board[row] = [];
             for (let col = 0; col < this.cols; col++) {
-                this.board[row][col] = this.randomColorIndex();
+                let value: number | null = null;
+                if (initialField && row < initialField.length && initialField[row] && col < initialField[row].length) {
+                    const cell = initialField[row][col];
+                    if (typeof cell === "number" && cell >= 0 && cell < this.colors.length) {
+                        value = cell;
+                    }
+                }
+                this.board[row][col] = value !== null ? value : this.randomColorIndex();
             }
         }
     }
@@ -311,6 +318,35 @@ export default class BlastGameModel {
         }
 
         this.remainingMoves--;
+    }
+
+    shuffleBoard(): void {
+        const values: number[] = [];
+
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const v = this.board[row][col];
+                if (v !== null) {
+                    values.push(v);
+                }
+            }
+        }
+
+        for (let i = values.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const t = values[i];
+            values[i] = values[j];
+            values[j] = t;
+        }
+
+        let idx = 0;
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                if (this.board[row][col] !== null) {
+                    this.board[row][col] = values[idx++];
+                }
+            }
+        }
     }
 }
 
