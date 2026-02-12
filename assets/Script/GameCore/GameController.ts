@@ -145,6 +145,18 @@ export default class GameController implements IGameController {
         this.updateMovesView();
     }
 
+    isGameEnded(): boolean {
+        const targetScore = this.model.getTargetScore();
+        if (targetScore <= 0) {
+            return false;
+        }
+        const score = this.model.getScore();
+        const remainingMoves = this.model.getRemainingMoves();
+        const isWin = score >= targetScore;
+        const isLoseByMoves = remainingMoves <= 0 && score < targetScore;
+        return isWin || isLoseByMoves;
+    }
+
     getCellAtPosition(worldPos: cc.Vec2): { row: number; col: number } | null {
         const localPos = this.parentNode.convertToNodeSpaceAR(worldPos);
         const fv = this.fieldView as FieldView;

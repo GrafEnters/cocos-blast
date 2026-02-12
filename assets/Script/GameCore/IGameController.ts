@@ -9,6 +9,7 @@ export default interface IGameController {
     getScore(): number;
     getTargetScore(): number;
     addMoves(value: number): void;
+    isGameEnded(): boolean;
     getCellAtPosition?(worldPos: cc.Vec2): { row: number; col: number } | null;
     useBooster?(boosterId: string, data?: any, onComplete?: () => void): void;
 }

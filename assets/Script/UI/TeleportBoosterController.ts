@@ -71,21 +71,6 @@ export default class TeleportBoosterController implements IBoosterController {
         }
     }
 
-    private isGameEnded(): boolean {
-        if (!this.gameCore) {
-            return false;
-        }
-        const targetScore = this.gameCore.getTargetScore();
-        if (targetScore <= 0) {
-            return false;
-        }
-        const score = this.gameCore.getScore();
-        const remainingMoves = this.gameCore.getRemainingMoves();
-        const isWin = score >= targetScore;
-        const isLoseByMoves = remainingMoves <= 0 && score < targetScore;
-        return isWin || isLoseByMoves;
-    }
-
     private exitTeleportMode(): void {
         this.active = false;
         this.firstTile = null;
@@ -96,7 +81,7 @@ export default class TeleportBoosterController implements IBoosterController {
         if (this.hintLabel) {
             this.hintLabel.active = false;
         }
-        if (this.boostersPanel && !this.isGameEnded()) {
+        if (this.boostersPanel && !this.gameCore.isGameEnded()) {
             this.boostersPanel.active = true;
         }
     }

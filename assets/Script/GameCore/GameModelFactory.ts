@@ -40,6 +40,7 @@ export default class GameModelFactory {
         boosterExtensionFactory.register(new BombBoosterExtension(boostersConfig.getBoosterConfig("bomb")));
         boosterExtensionFactory.register(new TeleportBoosterExtension(boostersConfig.getBoosterConfig("teleport")));
 
+
         model.setBoosterExtensionFactory(boosterExtensionFactory);
 
         return model;
