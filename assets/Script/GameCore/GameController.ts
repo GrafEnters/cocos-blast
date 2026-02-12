@@ -132,12 +132,7 @@ export default class GameController implements IGameController {
 
         const shuffle = (onComplete: () => void) => {
             this.model.shuffleBoard();
-            if (this.fieldView.playShuffleAnimation) {
-                this.fieldView.playShuffleAnimation(this.model.getBoard(), onComplete);
-            } else {
-                this.fieldView.rebuild(this.model.getBoard());
-                onComplete();
-            }
+            this.fieldView.playShuffleAnimation(this.model.getBoard(), onComplete);
         };
 
         const step = () => {
@@ -146,9 +141,7 @@ export default class GameController implements IGameController {
                 return;
             }
             if (!this.noMovesResolver.tryResolve(shuffle, step)) {
-                if (this.loseCallback) {
-                    this.loseCallback();
-                }
+                this.loseCallback();
                 return;
             }
         };
@@ -192,11 +185,6 @@ export default class GameController implements IGameController {
             }
         };
 
-        if (!this.animationView) {
-            completeStep();
-            return;
-        }
-
         this.animationView.playEventAnimations(eventResult, this.fieldView, completeStep);
     }
 
@@ -220,10 +208,7 @@ export default class GameController implements IGameController {
     getCellAtPosition(worldPos: cc.Vec2): { row: number; col: number } | null {
         const localPos = this.parentNode.convertToNodeSpaceAR(worldPos);
         const fv = this.fieldView as FieldView;
-        if (fv.getCellAtPosition) {
-            return fv.getCellAtPosition(localPos);
-        }
-        return null;
+        return fv.getCellAtPosition(localPos);
     }
 
     useBooster(boosterId: string, data?: any, onComplete?: () => void): void {
@@ -259,16 +244,12 @@ export default class GameController implements IGameController {
         const isLoseByNoMoves = hasTarget && score < targetScore && remainingMoves > 0 && !hasMovesOnBoard;
 
         if (isWin) {
-            if (this.winCallback) {
-                this.winCallback();
-            }
+            this.winCallback();
             return;
         }
 
         if (isLoseByMoves) {
-            if (this.loseCallback) {
-                this.loseCallback();
-            }
+            this.loseCallback();
             return;
         }
 
@@ -277,16 +258,10 @@ export default class GameController implements IGameController {
 
             const shuffle = (onComplete: () => void) => {
                 this.model.shuffleBoard();
-                if (this.fieldView.playShuffleAnimation) {
-                    this.fieldView.playShuffleAnimation(this.model.getBoard(), () => {
-                        this.isAnimating = false;
-                        onComplete();
-                    });
-                } else {
-                    this.fieldView.rebuild(this.model.getBoard());
+                this.fieldView.playShuffleAnimation(this.model.getBoard(), () => {
                     this.isAnimating = false;
                     onComplete();
-                }
+                });
             };
 
             if (this.noMovesResolver.tryResolve(shuffle)) {
@@ -297,25 +272,15 @@ export default class GameController implements IGameController {
         }
 
         if (isLoseByNoMoves) {
-            if (this.loseCallback) {
-                this.loseCallback();
-            }
+            this.loseCallback();
         }
     }
 
     private updateMovesView() {
-        if (!this.movesChangedCallback) {
-            return;
-        }
-
         this.movesChangedCallback(this.model.getRemainingMoves());
     }
 
     private updateScoreView() {
-        if (!this.scoreChangedCallback) {
-            return;
-        }
-
         this.scoreChangedCallback(this.model.getScore(), this.model.getTargetScore());
     }
 }
