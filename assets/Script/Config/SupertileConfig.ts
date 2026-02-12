@@ -1,7 +1,6 @@
-export interface SupertileConfig {
+export type SupertileConfig = {
     id: string;
-    radius?: number;
-    generationThreshold?: number;
-    icon?: string;
+    generationThreshold: number;
+    icon: string;
     [key: string]: any;
-}
+};

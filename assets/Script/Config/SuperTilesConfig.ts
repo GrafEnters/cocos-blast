@@ -8,11 +8,7 @@ export default class SuperTilesConfig extends cc.Component {
     @property
     superTilesPath: string = "SuperTiles";
 
-    private _superTiles: cc.JsonAsset[] = [];
-
-    get superTiles(): cc.JsonAsset[] {
-        return this._superTiles;
-    }
+    private _superTiles: SupertileConfig[] = [];
 
     loadSuperTiles(callback: () => void): void {
         if (this._superTiles.length > 0) {
@@ -22,50 +18,52 @@ export default class SuperTilesConfig extends cc.Component {
         const path = this.superTilesPath && this.superTilesPath.trim() ? this.superTilesPath.trim() : "SuperTiles";
         cc.resources.loadDir(path, cc.JsonAsset, (err, assets: cc.JsonAsset[]) => {
             if (!err && assets && assets.length > 0) {
-                this._superTiles = assets.slice();
+                const result: SupertileConfig[] = [];
+                for (let i = 0; i < assets.length; i++) {
+                    const asset = assets[i];
+                    if (!asset) {
+                        continue;
+                    }
+                    const data = asset.json as any;
+                    if (!data || typeof data.id !== "string") {
+                        continue;
+                    }
+                    result.push(data as SupertileConfig);
+                }
+                this._superTiles = result;
             }
             callback();
         });
     }
 
-    getSuperTileConfigs(): any[] {
-        const result: any[] = [];
+    getSuperTileConfigs(): SupertileConfig[] {
         if (!this._superTiles || this._superTiles.length === 0) {
-            return result;
+            return [];
         }
-        for (let i = 0; i < this._superTiles.length; i++) {
-            const asset = this._superTiles[i];
-            if (!asset) {
-                continue;
-            }
-            const data = asset.json as any;
-            if (data) {
-                result.push(data);
-            }
-        }
-        return result;
+        return this._superTiles.slice();
     }
 
     getSuperTileConfig(id: string): SupertileConfig {
-        const configs = this.getSuperTileConfigs();
-        for (let i = 0; i < configs.length; i++) {
-            const cfg = configs[i];
+        if (!id) {
+            throw new Error("No supertile config for empty id");
+        }
+        for (let i = 0; i < this._superTiles.length; i++) {
+            const cfg = this._superTiles[i];
             if (cfg && cfg.id === id) {
                 return cfg;
             }
         }
-        throw new Error(`No supertile config for id ${id}`)
+        throw new Error(`No supertile config for id ${id}`);
     }
 
     getSuperTileTypeForSize(groupSize: number): string | null {
         if (groupSize < 2) {
             return null;
         }
-        const configs = this.getSuperTileConfigs();
         let bestThreshold = -1;
         let bestType: string | null = null;
-        for (let i = 0; i < configs.length; i++) {
-            const cfg = configs[i];
+        for (let i = 0; i < this._superTiles.length; i++) {
+            const cfg = this._superTiles[i];
             if (!cfg || typeof cfg.id !== "string") {
                 continue;
             }

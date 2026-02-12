@@ -11,6 +11,7 @@ import TeleportBoosterExtension from "./TeleportBoosterExtension";
 import SuperTilesConfig from "../Config/SuperTilesConfig";
 import BoostersConfig from "../Config/BoostersConfig";
 import DiContainer from "../DI/DiContainer";
+import type { DynamiteSupertileConfig } from "../Config/DynamiteSupertileConfig";
 
 export default class GameModelFactory {
     private container: DiContainer;
@@ -29,18 +30,15 @@ export default class GameModelFactory {
         const extensionFactory = new SupertileExtensionFactory();
         extensionFactory.register(new RocketHSupertileExtension(superTilesConfig.getSuperTileConfig("rocketH")));
         extensionFactory.register(new RocketVSupertileExtension(superTilesConfig.getSuperTileConfig("rocketV")));
-        extensionFactory.register(new DynamiteSupertileExtension(superTilesConfig.getSuperTileConfig("dynamite")));
+        const dynamiteConfig = superTilesConfig.getSuperTileConfig("dynamite") as DynamiteSupertileConfig;
+        extensionFactory.register(new DynamiteSupertileExtension(dynamiteConfig));
         extensionFactory.register(new DynamiteMaxSupertileExtension(superTilesConfig.getSuperTileConfig("dynamiteMax")));
         model.setSuperTileExtensionFactory(extensionFactory);
 
 
         const boosterExtensionFactory = new BoosterExtensionFactory();
-        const bombConfig = boostersConfig.getBoosterConfig("bomb");
-
-        boosterExtensionFactory.register(new BombBoosterExtension(bombConfig));
-
-        const teleportConfig = boostersConfig.getBoosterConfig("teleport");
-        boosterExtensionFactory.register(new TeleportBoosterExtension(teleportConfig));
+        boosterExtensionFactory.register(new BombBoosterExtension(boostersConfig.getBoosterConfig("bomb")));
+        boosterExtensionFactory.register(new TeleportBoosterExtension(boostersConfig.getBoosterConfig("teleport")));
 
         model.setBoosterExtensionFactory(boosterExtensionFactory);
 

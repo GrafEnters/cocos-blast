@@ -1,14 +1,14 @@
 import IBoosterExtension from "./IBoosterExtension";
 import IGameModel, { BlastGameStepResult } from "./IGameModel";
 import type { BombBoosterConfig } from "../Config/BombBoosterConfig";
-import {SupertileConfig} from "../Config/SupertileConfig";
+import {BoosterConfig} from "../Config/BoosterConfig";
 
 export default class BombBoosterExtension implements IBoosterExtension {
     id: string = "bomb";
 
     private radius: number;
 
-    constructor(config: SupertileConfig) {
+    constructor(config: BoosterConfig) {
         const bombConfig = config as BombBoosterConfig;
         if (!bombConfig) {
             throw new Error("BombBoosterExtension requires a radius property");

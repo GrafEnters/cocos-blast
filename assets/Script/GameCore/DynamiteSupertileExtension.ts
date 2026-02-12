@@ -1,6 +1,7 @@
 import ISupertileExtension from "./ISupertileExtension";
-import IGameModel, { BlastGameStepResult } from "./IGameModel";
-import type { SupertileConfig } from "../Config/SupertileConfig";
+import IGameModel, {BlastGameStepResult} from "./IGameModel";
+import type {DynamiteSupertileConfig} from "../Config/DynamiteSupertileConfig";
+import {SupertileConfig} from "../Config/SupertileConfig";
 
 export default class DynamiteSupertileExtension implements ISupertileExtension {
     id: string = "dynamite";
@@ -8,11 +9,11 @@ export default class DynamiteSupertileExtension implements ISupertileExtension {
     private radius: number;
 
     constructor(config: SupertileConfig) {
-        if (typeof config.radius === "number" && config.radius >= 0) {
-            this.radius = config.radius;
-        } else {
-            this.radius = 2;
+        const dynamiteConfig = config as DynamiteSupertileConfig;
+        if (!dynamiteConfig) {
+            throw new Error("DynamiteSupertileExtension requires a radius property");
         }
+        this.radius = config.radius;
     }
 
     handle(model: IGameModel, row: number, col: number, data?: any): BlastGameStepResult | null {
@@ -30,7 +31,7 @@ export default class DynamiteSupertileExtension implements ISupertileExtension {
                 return;
             }
             used[key] = true;
-            removed.push({ row: r, col: c });
+            removed.push({row: r, col: c});
         };
 
         const scoreBefore = model.getScore();
@@ -48,7 +49,7 @@ export default class DynamiteSupertileExtension implements ISupertileExtension {
                 if (r === row && c === col) {
                     model.setCellValue(r, c, null);
                     pushRemoved(r, c);
-                    directStep.push({ row: r, col: c });
+                    directStep.push({row: r, col: c});
                     directRemovedCount++;
                     continue;
                 }
@@ -59,13 +60,13 @@ export default class DynamiteSupertileExtension implements ISupertileExtension {
                     }
                     if (data && Array.isArray(data.superTileQueue)) {
                         const depth = typeof data.depth === "number" && data.depth >= 0 ? data.depth : 0;
-                        data.superTileQueue.push({ id, row: r, col: c, depth: depth + 1 });
+                        data.superTileQueue.push({id, row: r, col: c, depth: depth + 1});
                     }
                     continue;
                 }
                 model.setCellValue(r, c, null);
                 pushRemoved(r, c);
-                directStep.push({ row: r, col: c });
+                directStep.push({row: r, col: c});
                 directRemovedCount++;
             }
         }
@@ -74,7 +75,7 @@ export default class DynamiteSupertileExtension implements ISupertileExtension {
         }
         if (chainSteps && directStep.length > 0) {
             const depth = data && typeof data.depth === "number" && data.depth >= 0 ? data.depth : 0;
-            chainSteps.push({ depth, cells: directStep });
+            chainSteps.push({depth, cells: directStep});
         }
         if (directRemovedCount > 0) {
             const scoreDeltaDirect = model.calculateGroupScorePublic(directRemovedCount);
