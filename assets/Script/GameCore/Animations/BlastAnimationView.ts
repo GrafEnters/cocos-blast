@@ -3,7 +3,7 @@ import IAnimationView from "./IAnimationView";
 import { GameEventResult } from "../Models/IGameModel";
 import IFieldView from "../IFieldView";
 
-export default class BlastGameCoreView implements IAnimationView {
+export default class BlastAnimationView implements IAnimationView {
     async playGroupRemoveAnimation(group: Tile[]): Promise<void> {
         if (!group || group.length === 0) {
             return;

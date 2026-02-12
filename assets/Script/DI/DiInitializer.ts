@@ -11,7 +11,7 @@ import SuperTilesConfig from "../Config/SuperTilesConfig";
 import IGameController from "../GameCore/IGameController";
 import GameController from "../GameCore/GameController";
 import GameModelFactory from "../GameCore/Models/GameModelFactory";
-import BlastGameCoreView from "../GameCore/Animations/BlastGameCoreView";
+import BlastAnimationView from "../GameCore/Animations/BlastAnimationView";
 import ShuffleNoMovesResolver from "../GameCore/ShuffleNoMovesResolver";
 import EndGamePanel from "../UI/EndGamePanel";
 import IInput from "../Input/IInput";
@@ -19,10 +19,14 @@ import TapInput from "../Input/TapInput";
 import BoostersPanelView from "../UI/BoostersPanelView";
 import BoostersControllersFactory from "../GameCore/Boosters/BoostersControllersFactory";
 import TileSpriteDictionary from "../GameCore/TileSpriteDictionary";
+import TopPanelView from "../UI/TopPanelView";
+import GameUI from "../UI/GameUI";
 
 @ccclass
 @executeInEditMode
 export default class DiInitializer extends cc.Component {
+    @property
+    rebuild: boolean = false;
 
     @property(MainGameConfig)
     mainGameConfig: MainGameConfig = null;
@@ -39,26 +43,11 @@ export default class DiInitializer extends cc.Component {
     @property(SuperTilesConfig)
     superTilesConfig: SuperTilesConfig = null;
 
-    @property
-    rebuild: boolean = false;
-
-    @property(cc.Label)
-    movesLabel: cc.Label = null;
-
-    @property(cc.Label)
-    pointsLabel: cc.Label = null;
-
-    @property(cc.Node)
-    gameRoot: cc.Node = null;
-
     @property(BoostersPanelView)
     boostersPanel: BoostersPanelView = null;
 
-    @property(cc.Node)
-    movesPanel: cc.Node = null;
-
-    @property(EndGamePanel)
-    endGamePanel: EndGamePanel = null;
+    @property(GameUI)
+    gameUI: GameUI = null;
 
     @property
     enableShuffle: boolean = true;
@@ -95,6 +84,10 @@ export default class DiInitializer extends cc.Component {
             container.register(DiTokens.SuperTilesConfig, this.superTilesConfig);
         }
 
+        if (this.gameUI) {
+            container.register(DiTokens.GameUI, this.gameUI);
+        }
+
         const tileSpriteDictionary = new TileSpriteDictionary(this.tileColorConfig ? this.tileColorConfig.defaultSprite : null);
         if (this.tileColorConfig) {
             const keys = this.tileColorConfig.keys || [];
@@ -111,7 +104,7 @@ export default class DiInitializer extends cc.Component {
 
 
         await this.initSupertiles(tileSpriteDictionary);
-        await this.ensureBoostersLoaded();
+        await this.boostersConfig.loadBoosters();
         await this.buildAndStartGame();
     }
 
@@ -119,26 +112,8 @@ export default class DiInitializer extends cc.Component {
         const container = DiContainer.instance;
         const gameModelFactory = new GameModelFactory(container);
         container.register(DiTokens.GameModelFactory, gameModelFactory);
-        const gameRootNode = this.gameRoot ? this.gameRoot : this.node;
 
-        if (this.gameRoot) {
-            this.gameRoot.active = true;
-        }
-
-        if (this.boostersPanel) {
-            this.boostersPanel.node.active = true;
-        }
-
-        if (this.movesPanel) {
-            this.movesPanel.active = true;
-        }
-
-        if (this.endGamePanel) {
-            this.endGamePanel.node.active = false;
-        }
-
-        gameRootNode.removeAllChildren();
-
+        this.gameUI.init();
 
         const rows = this.mainLevelConfig ? this.mainLevelConfig.rows : 8;
         const cols = this.mainLevelConfig ? this.mainLevelConfig.cols : 8;
@@ -175,16 +150,13 @@ export default class DiInitializer extends cc.Component {
             }
         }
 
-        const gameCoreView = new BlastGameCoreView();
-
-        const endGamePanel = this.endGamePanel ? this.endGamePanel.getComponent(EndGamePanel) : null;
+        const animationView = new BlastAnimationView();
 
         const noMovesResolver = this.enableShuffle ? new ShuffleNoMovesResolver(3) : null;
 
         const model = gameModelFactory.create(rows, cols, colors, moves, targetScore, this.superTilesConfig, this.boostersConfig);
 
         const gameCore: IGameController = new GameController(
-            gameRootNode,
             rows,
             cols,
             colors,
@@ -192,55 +164,8 @@ export default class DiInitializer extends cc.Component {
             tileSpacing,
             this.tileColorConfig,
             model,
-            this.movesLabel ? (value => {
-                this.movesLabel.string = value.toString();
-            }) : undefined,
-            this.pointsLabel ? ((score, target) => {
-                if (target > 0) {
-                    this.pointsLabel.string = score.toString() + " / " + target.toString();
-                } else {
-                    this.pointsLabel.string = score.toString();
-                }
-            }) : undefined,
-            gameCoreView,
-            endGamePanel ? (() => {
-                if (this.gameRoot) {
-                    this.gameRoot.active = false;
-                }
-
-                if (this.boostersPanel) {
-                    this.boostersPanel.node.active = false;
-                }
-
-                if (this.movesPanel) {
-                    this.movesPanel.active = false;
-                }
-
-                if (this.endGamePanel) {
-                    this.endGamePanel.node.active = true;
-                }
-
-                endGamePanel.showWin();
-            }) : undefined,
-            endGamePanel ? (() => {
-                if (this.gameRoot) {
-                    this.gameRoot.active = false;
-                }
-
-                if (this.boostersPanel) {
-                    this.boostersPanel.node.active = false;
-                }
-
-                if (this.movesPanel) {
-                    this.movesPanel.active = false;
-                }
-
-                if (this.endGamePanel) {
-                    this.endGamePanel.node.active = true;
-                }
-
-                endGamePanel.showLose();
-            }) : undefined,
+            this.gameUI,
+            animationView,
             noMovesResolver,
             initialField
         );
@@ -303,12 +228,6 @@ export default class DiInitializer extends cc.Component {
         const boostersButtonFactory = new BoostersControllersFactory();
         boostersButtonFactory.createControllers(configs as BoosterConfig[], buttons, this.boostersPanel, gameCore);
     }
-
-    private async ensureBoostersLoaded(): Promise<void> {
-        if (this.boostersConfig && typeof this.boostersConfig.loadBoosters === "function") {
-            await this.boostersConfig.loadBoosters();
-        }
-    };
 
     async update() {
         if (!this.rebuild) {

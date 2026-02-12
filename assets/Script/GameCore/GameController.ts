@@ -3,43 +3,34 @@ import IGameController from "./IGameController";
 import TileInputEventType from "../Input/TileInputEventType";
 import TileInputEvent from "../Input/TileInputEvent";
 import TileColorConfig from "../Config/TileColorConfig";
-import IGameModel, { GameEventResult } from "./Models/IGameModel";
+import IGameModel, {GameEventResult} from "./Models/IGameModel";
 import IAnimationView from "./Animations/IAnimationView";
 import IFieldView from "./IFieldView";
 import FieldView from "./FieldView";
 import INoMovesResolver from "./INoMovesResolver";
+import IGameUi from "../UI/IGameUi";
 
 export default class GameController implements IGameController {
-    private parentNode: cc.Node;
+    private model: IGameModel = null;
+    private ui: IGameUi = null;
+
     private colors: string[];
     private tileSize: number;
     private tileSpacing: number;
     private tileColorConfig: TileColorConfig = null;
-
     private animationView: IAnimationView = null;
-    private model: IGameModel = null;
     private fieldView: IFieldView = null;
     private noMovesResolver: INoMovesResolver | null = null;
     private initialField: (string | null)[][] | null = null;
-
     private isAnimating: boolean = false;
 
-    private movesChangedCallback: ((moves: number) => void) | null = null;
-    private scoreChangedCallback: ((score: number, targetScore: number) => void) | null = null;
-    private winCallback: (() => void) | null = null;
-    private loseCallback: (() => void) | null = null;
-
-    constructor(parentNode: cc.Node, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, model: IGameModel, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView, winCallback?: () => void, loseCallback?: () => void, noMovesResolver?: INoMovesResolver | null, initialField?: (string | null)[][] | null) {
-        this.parentNode = parentNode;
+    constructor(rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, model: IGameModel, ui: IGameUi, animationView: IAnimationView, noMovesResolver?: INoMovesResolver | null, initialField?: (string | null)[][] | null) {
         this.colors = colors && colors.length > 0 ? colors.slice() : ["red", "green", "blue", "yellow"];
         this.tileSize = tileSize;
         this.tileSpacing = tileSpacing;
         this.tileColorConfig = tileColorConfig;
-        this.movesChangedCallback = movesChangedCallback || null;
-        this.scoreChangedCallback = scoreChangedCallback || null;
-        this.animationView = animationView || null;
-        this.winCallback = winCallback || null;
-        this.loseCallback = loseCallback || null;
+        this.ui = ui;
+        this.animationView = animationView;
         this.noMovesResolver = noMovesResolver === undefined ? null : noMovesResolver;
         this.initialField = initialField === undefined ? null : initialField;
 
@@ -50,7 +41,7 @@ export default class GameController implements IGameController {
     init(): void {
         this.model.init(this.initialField);
 
-        this.fieldView.init(this.parentNode);
+        this.fieldView.init(this.ui.getRootNode());
         this.fieldView.rebuild(this.model.getBoard());
 
         this.ensureMovesAvailable(() => {
@@ -76,7 +67,9 @@ export default class GameController implements IGameController {
                 return;
             }
             if (!this.noMovesResolver.tryResolve(shuffle, step)) {
-                this.loseCallback();
+                if (this.ui) {
+                    this.ui.lose();
+                }
                 return;
             }
         };
@@ -111,7 +104,7 @@ export default class GameController implements IGameController {
 
         try {
             await this.animationView.playEventAnimations(eventResult, this.fieldView);
-            
+
             this.fieldView.rebuild(this.model.getBoard());
             this.updateMovesView();
             this.updateScoreView();
@@ -158,7 +151,7 @@ export default class GameController implements IGameController {
     }
 
     getCellAtPosition(worldPos: cc.Vec2): { row: number; col: number } | null {
-        const localPos = this.parentNode.convertToNodeSpaceAR(worldPos);
+        const localPos = this.ui.getRootNode().convertToNodeSpaceAR(worldPos);
         const fv = this.fieldView as FieldView;
         return fv.getCellAtPosition(localPos);
     }
@@ -170,7 +163,7 @@ export default class GameController implements IGameController {
         }
 
         if (!tile) {
-            tile = { row: -1, col: -1, node: null } as Tile;
+            tile = {row: -1, col: -1, node: null} as Tile;
         }
 
         const event: TileInputEvent = {
@@ -196,12 +189,16 @@ export default class GameController implements IGameController {
         const isLoseByNoMoves = hasTarget && score < targetScore && remainingMoves > 0 && !hasMovesOnBoard;
 
         if (isWin) {
-            this.winCallback();
+            if (this.ui) {
+                this.ui.win();
+            }
             return;
         }
 
         if (isLoseByMoves) {
-            this.loseCallback();
+            if (this.ui) {
+                this.ui.lose();
+            }
             return;
         }
 
@@ -224,16 +221,24 @@ export default class GameController implements IGameController {
         }
 
         if (isLoseByNoMoves) {
-            this.loseCallback();
+            if (this.ui) {
+                this.ui.lose();
+            }
         }
     }
 
     private updateMovesView() {
-        this.movesChangedCallback(this.model.getRemainingMoves());
+        if (!this.ui) {
+            return;
+        }
+        this.ui.setMoves(this.model.getRemainingMoves());
     }
 
     private updateScoreView() {
-        this.scoreChangedCallback(this.model.getScore(), this.model.getTargetScore());
+        if (!this.ui) {
+            return;
+        }
+        this.ui.setScore(this.model.getScore(), this.model.getTargetScore());
     }
 }
 
