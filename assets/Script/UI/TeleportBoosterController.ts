@@ -147,34 +147,32 @@ export default class TeleportBoosterController {
             fromCol: fromTile.col,
             toRow: tile.row,
             toCol: tile.col,
-            preAnimation: (fieldView: any, animationView: any, done: () => void) => {
+            preAnimation: async (fieldView: any, animationView: any) => {
                 if (!fieldView) {
-                    done();
                     return;
                 }
                 const first = fieldView.getTile(fromTile.row, fromTile.col);
                 const second = fieldView.getTile(tile.row, tile.col);
                 if (!first || !second || !first.node || !second.node) {
-                    done();
                     return;
                 }
                 const firstPos = first.node.position.clone ? first.node.position.clone() : cc.v3(first.node.x, first.node.y, first.node.z);
                 const secondPos = second.node.position.clone ? second.node.position.clone() : cc.v3(second.node.x, second.node.y, second.node.z);
-                let completed = 0;
-                const onTweenComplete = () => {
-                    completed++;
-                    if (completed >= 2) {
-                        done();
-                    }
-                };
-                cc.tween(first.node)
-                    .to(0.25, { position: secondPos })
-                    .call(onTweenComplete)
-                    .start();
-                cc.tween(second.node)
-                    .to(0.25, { position: firstPos })
-                    .call(onTweenComplete)
-                    .start();
+                
+                await Promise.all([
+                    new Promise<void>((resolve) => {
+                        cc.tween(first.node)
+                            .to(0.25, { position: secondPos })
+                            .call(() => resolve())
+                            .start();
+                    }),
+                    new Promise<void>((resolve) => {
+                        cc.tween(second.node)
+                            .to(0.25, { position: firstPos })
+                            .call(() => resolve())
+                            .start();
+                    })
+                ]);
             }
         }, () => {
             if (this.buttonView) {

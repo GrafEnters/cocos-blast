@@ -115,24 +115,21 @@ export default class BombBoosterController {
             row: tile.row,
             col: tile.col,
             bombSpriteFrame: this.bombSpriteFrame,
-            preAnimation: (fieldView: any, animationView: any, done: () => void) => {
+            preAnimation: async (fieldView: any, animationView: any) => {
                 if (!fieldView) {
-                    done();
                     return;
                 }
                 const centerTile = fieldView.getTile(tile.row, tile.col);
                 if (!centerTile || !centerTile.node) {
-                    done();
                     return;
                 }
                 if (fieldView.setTileBombAppearance && this.bombSpriteFrame) {
                     fieldView.setTileBombAppearance(centerTile, this.bombSpriteFrame);
                 }
                 if (!animationView || !animationView.playBombBurnAnimation || !this.bombSpriteFrame) {
-                    done();
                     return;
                 }
-                animationView.playBombBurnAnimation(centerTile.node, 1.5, done);
+                await animationView.playBombBurnAnimation(centerTile.node, 1.5);
             }
         }, () => {
             if (this.buttonView) {

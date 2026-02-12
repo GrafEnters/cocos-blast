@@ -4,42 +4,37 @@ import { GameEventResult } from "./IGameModel";
 import IFieldView from "./IFieldView";
 
 export default class BlastGameCoreView implements IAnimationView {
-    playGroupRemoveAnimation(group: Tile[], onComplete: () => void): void {
+    async playGroupRemoveAnimation(group: Tile[]): Promise<void> {
         if (!group || group.length === 0) {
-            onComplete();
             return;
         }
 
-        let completed = 0;
-        const total = group.length;
-
-        const onTileComplete = () => {
-            completed++;
-            if (completed >= total) {
-                onComplete();
-            }
-        };
+        const promises: Promise<void>[] = [];
 
         for (let i = 0; i < group.length; i++) {
             const tile = group[i];
             if (!tile || !tile.node || !tile.node.isValid) {
-                onTileComplete();
                 continue;
             }
 
-            tile.node.scale = 1;
+            const promise = new Promise<void>((resolve) => {
+                tile.node.scale = 1;
 
-            cc.tween(tile.node)
-                .to(0.08, { scale: 1.15 })
-                .to(0.08, { scale: 0 })
-                .call(onTileComplete)
-                .start();
+                cc.tween(tile.node)
+                    .to(0.08, { scale: 1.15 })
+                    .to(0.08, { scale: 0 })
+                    .call(() => resolve())
+                    .start();
+            });
+
+            promises.push(promise);
         }
+
+        await Promise.all(promises);
     }
 
-    playBombBurnAnimation(node: cc.Node, duration: number, onComplete: () => void): void {
+    async playBombBurnAnimation(node: cc.Node, duration: number): Promise<void> {
         if (!node || !node.isValid) {
-            onComplete();
             return;
         }
         const amount = 3;
@@ -50,22 +45,24 @@ export default class BlastGameCoreView implements IAnimationView {
         const id = setInterval(() => {
             if (!node.isValid) {
                 clearInterval(id);
-                onComplete();
                 return;
             }
             node.x = baseX + sign * amount;
             sign = -sign;
         }, interval);
-        setTimeout(() => {
-            clearInterval(id);
-            if (node.isValid) {
-                node.setPosition(baseX, baseY);
-            }
-            onComplete();
-        }, duration * 1000);
+        
+        return new Promise<void>((resolve) => {
+            setTimeout(() => {
+                clearInterval(id);
+                if (node.isValid) {
+                    node.setPosition(baseX, baseY);
+                }
+                resolve();
+            }, duration * 1000);
+        });
     }
 
-    playEventAnimations(eventResult: GameEventResult, fieldView: IFieldView, onComplete: () => void): void {
+    async playEventAnimations(eventResult: GameEventResult, fieldView: IFieldView): Promise<void> {
         const result = eventResult.stepResult;
         const animationSteps = eventResult.animationSteps || [];
 
@@ -78,9 +75,8 @@ export default class BlastGameCoreView implements IAnimationView {
             }
         }
 
-        const applyAnimations = () => {
+        const applyAnimations = async () => {
             if (tilesToPop.length === 0) {
-                onComplete();
                 return;
             }
 
@@ -132,29 +128,20 @@ export default class BlastGameCoreView implements IAnimationView {
                 }
 
                 if (steps.length > 0) {
-                    let index = 0;
-                    const playNext = () => {
-                        if (index >= steps.length) {
-                            onComplete();
-                            return;
-                        }
-                        const group = steps[index];
-                        index++;
-                        this.playGroupRemoveAnimation(group, playNext);
-                    };
-                    playNext();
+                    for (let i = 0; i < steps.length; i++) {
+                        await this.playGroupRemoveAnimation(steps[i]);
+                    }
                     return;
                 }
             }
 
-            this.playGroupRemoveAnimation(tilesToPop, onComplete);
+            await this.playGroupRemoveAnimation(tilesToPop);
         };
 
         if (eventResult.preAnimation) {
-            eventResult.preAnimation(fieldView, this, applyAnimations);
-        } else {
-            applyAnimations();
+            await eventResult.preAnimation(fieldView, this);
         }
+        await applyAnimations();
     }
 }
 

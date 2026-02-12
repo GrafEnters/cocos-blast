@@ -21,7 +21,7 @@ export interface GameAnimationStep {
 export interface GameEventResult {
     stepResult: BlastGameStepResult;
     animationSteps: GameAnimationStep[];
-    preAnimation?: (fieldView: any, animationView: any, done: () => void) => void;
+    preAnimation?: (fieldView: any, animationView: any) => Promise<void>;
 }
 
 export default interface IGameModel {

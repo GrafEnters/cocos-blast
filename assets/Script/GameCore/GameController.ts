@@ -166,13 +166,17 @@ export default class GameController implements IGameController {
             return;
         }
 
-        this.playEventAnimations(eventResult, event.onComplete);
+        this.playEventAnimations(eventResult, event.onComplete).catch((error) => {
+            console.error("Error in playEventAnimations:", error);
+        });
     }
 
-    private playEventAnimations(eventResult: GameEventResult, onComplete?: () => void): void {
+    private async playEventAnimations(eventResult: GameEventResult, onComplete?: () => void): Promise<void> {
         this.isAnimating = true;
 
-        const completeStep = () => {
+        try {
+            await this.animationView.playEventAnimations(eventResult, this.fieldView);
+            
             this.fieldView.rebuild(this.model.getBoard());
             this.updateMovesView();
             this.updateScoreView();
@@ -183,9 +187,10 @@ export default class GameController implements IGameController {
             if (onComplete) {
                 onComplete();
             }
-        };
-
-        this.animationView.playEventAnimations(eventResult, this.fieldView, completeStep);
+        } catch (error) {
+            this.isAnimating = false;
+            throw error;
+        }
     }
 
     getRemainingMoves(): number {
