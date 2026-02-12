@@ -1,10 +1,10 @@
 import ISupertileExtension from "./ISupertileExtension";
-import BlastGameModel, { BlastGameStepResult } from "./BlastGameModel";
+import IGameModel, { BlastGameStepResult } from "./IGameModel";
 
 export default class DynamiteMaxSupertileExtension implements ISupertileExtension {
     id: string = "dynamiteMax";
 
-    handle(model: BlastGameModel, row: number, col: number, data?: any): BlastGameStepResult | null {
+    handle(model: IGameModel, row: number, col: number, data?: any): BlastGameStepResult | null {
         const removed: { row: number; col: number }[] = [];
         const used: { [key: string]: boolean } = {};
         const chainSteps = data && Array.isArray(data.superTileChainSteps) ? data.superTileChainSteps as { depth: number; cells: { row: number; col: number }[] }[] : null;

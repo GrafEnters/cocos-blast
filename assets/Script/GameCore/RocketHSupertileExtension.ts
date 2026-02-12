@@ -1,10 +1,10 @@
 import ISupertileExtension from "./ISupertileExtension";
-import BlastGameModel, { BlastGameStepResult } from "./BlastGameModel";
+import IGameModel, { BlastGameStepResult } from "./IGameModel";
 
 export default class RocketHSupertileExtension implements ISupertileExtension {
     id: string = "rocketH";
 
-    handle(model: BlastGameModel, row: number, col: number, data?: any): BlastGameStepResult | null {
+    handle(model: IGameModel, row: number, col: number, data?: any): BlastGameStepResult | null {
         if (row < 0 || row >= model.getRows()) {
             return null;
         }

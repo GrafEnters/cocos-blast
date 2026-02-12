@@ -1,10 +1,10 @@
 import IBoosterExtension from "./IBoosterExtension";
-import BlastGameModel, { BlastGameStepResult } from "./BlastGameModel";
+import IGameModel, { BlastGameStepResult } from "./IGameModel";
 
 export default class TeleportBoosterExtension implements IBoosterExtension {
     id: string = "teleport";
 
-    handle(model: BlastGameModel, data?: any): BlastGameStepResult | null {
+    handle(model: IGameModel, data?: any): BlastGameStepResult | null {
         if (!data || typeof data.fromRow !== "number" || typeof data.fromCol !== "number" || 
             typeof data.toRow !== "number" || typeof data.toCol !== "number") {
             return null;

@@ -1,7 +1,7 @@
-import BlastGameModel, { BlastGameStepResult } from "./BlastGameModel";
+import IGameModel, { BlastGameStepResult } from "./IGameModel";
 
 export default interface ISupertileExtension {
     id: string;
-    handle(model: BlastGameModel, row: number, col: number, data?: any): BlastGameStepResult | null;
+    handle(model: IGameModel, row: number, col: number, data?: any): BlastGameStepResult | null;
 }
 

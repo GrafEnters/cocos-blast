@@ -1,5 +1,5 @@
 import IBoosterExtension from "./IBoosterExtension";
-import BlastGameModel, { BlastGameStepResult } from "./BlastGameModel";
+import IGameModel, { BlastGameStepResult } from "./IGameModel";
 
 export default class BombBoosterExtension implements IBoosterExtension {
     id: string = "bomb";
@@ -10,7 +10,7 @@ export default class BombBoosterExtension implements IBoosterExtension {
         this.radius = radius >= 0 ? radius : 1;
     }
 
-    handle(model: BlastGameModel, data?: any): BlastGameStepResult | null {
+    handle(model: IGameModel, data?: any): BlastGameStepResult | null {
         if (!data || typeof data.row !== "number" || typeof data.col !== "number") {
             return null;
         }

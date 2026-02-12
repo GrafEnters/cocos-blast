@@ -1,5 +1,5 @@
 import ISupertileExtension from "./ISupertileExtension";
-import BlastGameModel, { BlastGameStepResult } from "./BlastGameModel";
+import IGameModel, { BlastGameStepResult } from "./IGameModel";
 
 export default class DynamiteSupertileExtension implements ISupertileExtension {
     id: string = "dynamite";
@@ -10,7 +10,7 @@ export default class DynamiteSupertileExtension implements ISupertileExtension {
         this.radius = radius >= 0 ? radius : 0;
     }
 
-    handle(model: BlastGameModel, row: number, col: number, data?: any): BlastGameStepResult | null {
+    handle(model: IGameModel, row: number, col: number, data?: any): BlastGameStepResult | null {
         if (!model.isInsidePublic(row, col)) {
             return null;
         }

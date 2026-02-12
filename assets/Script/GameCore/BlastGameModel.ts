@@ -1,17 +1,11 @@
+import IGameModel, { BlastGameBoardCell, BlastGameStepResult } from "./IGameModel";
 import SupertileExtensionFactory from "./SupertileExtensionFactory";
 import BoosterExtensionFactory from "./BoosterExtensionFactory";
+import TileInputEventType from "./TileInputEventType";
 
-export type BlastGameBoardCell = string | null;
+export type { BlastGameBoardCell, BlastGameStepResult };
 
-export interface BlastGameStepResult {
-    removed: { row: number; col: number }[];
-    score: number;
-    targetScore: number;
-    remainingMoves: number;
-    scoreDelta: number;
-}
-
-export default class BlastGameModel {
+export default class BlastGameModel implements IGameModel {
     private rows: number;
     private cols: number;
     private colors: string[];
@@ -33,6 +27,10 @@ export default class BlastGameModel {
         this.remainingMoves = this.totalMoves;
         this.score = 0;
         this.targetScore = targetScore > 0 ? targetScore : 0;
+    }
+
+    getSupportedEvents(): TileInputEventType[] {
+        return [TileInputEventType.Tap, TileInputEventType.Booster];
     }
 
     setSuperTileGenerationCallback(callback: ((groupSize: number) => string | null) | null): void {

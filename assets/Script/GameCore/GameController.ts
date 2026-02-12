@@ -3,7 +3,7 @@ import IGameCore from "./IGameCore";
 import TileInputEventType from "./TileInputEventType";
 import TileInputEvent from "./TileInputEvent";
 import TileColorConfig from "../Config/TileColorConfig";
-import BlastGameModel from "./BlastGameModel";
+import IGameModel from "./IGameModel";
 import IAnimationView from "./IAnimationView";
 import IFieldView from "./IFieldView";
 import FieldView from "./FieldView";
@@ -24,15 +24,13 @@ import BoostersConfig from "../Config/BoostersConfig";
 
 export default class GameController implements IGameCore {
     private parentNode: cc.Node;
-    private rows: number;
-    private cols: number;
     private colors: string[];
     private tileSize: number;
     private tileSpacing: number;
     private tileColorConfig: TileColorConfig = null;
 
     private animationView: IAnimationView = null;
-    private model: BlastGameModel = null;
+    private model: IGameModel = null;
     private fieldView: IFieldView = null;
     private noMovesResolver: INoMovesResolver | null = null;
     private initialField: (string | null)[][] | null = null;
@@ -46,10 +44,8 @@ export default class GameController implements IGameCore {
     private winCallback: (() => void) | null = null;
     private loseCallback: (() => void) | null = null;
 
-    constructor(parentNode: cc.Node, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView, winCallback?: () => void, loseCallback?: () => void, noMovesResolver?: INoMovesResolver | null, initialField?: (string | null)[][] | null, superTilesConfig?: SuperTilesConfig | null) {
+    constructor(parentNode: cc.Node, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, modelFactory: (rows: number, cols: number, colors: string[], moves: number, targetScore: number) => IGameModel, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView, winCallback?: () => void, loseCallback?: () => void, noMovesResolver?: INoMovesResolver | null, initialField?: (string | null)[][] | null, superTilesConfig?: SuperTilesConfig | null) {
         this.parentNode = parentNode;
-        this.rows = rows;
-        this.cols = cols;
         this.colors = colors && colors.length > 0 ? colors.slice() : ["red", "green", "blue", "yellow"];
         this.tileSize = tileSize;
         this.tileSpacing = tileSpacing;
@@ -63,7 +59,7 @@ export default class GameController implements IGameCore {
         this.initialField = initialField === undefined ? null : initialField;
         this.superTilesConfig = superTilesConfig === undefined ? null : superTilesConfig;
 
-        this.model = new BlastGameModel(rows, cols, this.colors, moves, targetScore);
+        this.model = modelFactory(rows, cols, this.colors, moves, targetScore);
         this.fieldView = new FieldView(rows, cols, this.colors, tileSize, tileSpacing, null, tileColorConfig);
 
         const container = DiContainer.instance;
@@ -161,7 +157,7 @@ export default class GameController implements IGameCore {
     }
 
     getSupportedEvents(): TileInputEventType[] {
-        return [TileInputEventType.Tap];
+        return this.model.getSupportedEvents();
     }
 
     handleEvent(event: TileInputEvent): void {
@@ -177,18 +173,15 @@ export default class GameController implements IGameCore {
             return;
         }
 
-        if (event.type !== TileInputEventType.Tap) {
-            return;
-        }
+        if (event.type === TileInputEventType.Tap) {
+            const tile = event.tile;
 
-        const tile = event.tile;
+            if (!tile) {
+                return;
+            }
 
-        if (!tile) {
-            return;
-        }
-
-        const chainData: { superTileChainSteps: { depth: number; cells: { row: number; col: number }[] }[]; depth?: number } = { superTileChainSteps: [] };
-        const result = this.model.handleTap(tile.row, tile.col, chainData);
+            const chainData: { superTileChainSteps: { depth: number; cells: { row: number; col: number }[] }[]; depth?: number } = { superTileChainSteps: [] };
+            const result = this.model.handleTap(tile.row, tile.col, chainData);
 
         if (!result) {
             return;
@@ -293,55 +286,24 @@ export default class GameController implements IGameCore {
         } else {
             completeStep();
         }
-    }
-
-    getRemainingMoves(): number {
-        return this.model.getRemainingMoves();
-    }
-
-    getScore(): number {
-        return this.model.getScore();
-    }
-
-    getTargetScore(): number {
-        return this.model.getTargetScore();
-    }
-
-    addMoves(value: number): void {
-        this.model.addMoves(value);
-        this.updateMovesView();
-    }
-
-    getCellAtPosition(worldPos: cc.Vec2): { row: number; col: number } | null {
-        const localPos = this.parentNode.convertToNodeSpaceAR(worldPos);
-        const fv = this.fieldView as FieldView;
-        if (fv.getCellAtPosition) {
-            return fv.getCellAtPosition(localPos);
-        }
-        return null;
-    }
-
-    useBooster(boosterId: string, data?: any, onComplete?: () => void): void {
-        if (this.isAnimating) {
-            if (onComplete) {
-                onComplete();
-            }
-            return;
-        }
-
-        const applyBooster = () => {
-            const chainData: { superTileChainSteps: { depth: number; cells: { row: number; col: number }[] }[]; depth?: number } = { superTileChainSteps: [] };
-            const boosterData = data || {};
-            (boosterData as any).chainData = chainData;
-
-            const result = this.model.handleBooster(boosterId, boosterData);
-            if (!result) {
-                this.isAnimating = false;
-                if (onComplete) {
-                    onComplete();
-                }
+        } else if (event.type === TileInputEventType.Booster) {
+            if (!event.boosterId) {
                 return;
             }
+
+            const applyBooster = () => {
+                const chainData: { superTileChainSteps: { depth: number; cells: { row: number; col: number }[] }[]; depth?: number } = { superTileChainSteps: [] };
+                const boosterData = event.boosterData || {};
+                (boosterData as any).chainData = chainData;
+
+                const result = this.model.handleBooster(event.boosterId, boosterData);
+                if (!result) {
+                    this.isAnimating = false;
+                    if (event.onComplete) {
+                        event.onComplete();
+                    }
+                    return;
+                }
 
             const tilesToPop: Tile[] = [];
 
@@ -354,6 +316,8 @@ export default class GameController implements IGameCore {
                 }
             }
 
+            this.isAnimating = true;
+
             const completeStep = () => {
                 this.fieldView.rebuild(this.model.getBoard());
                 this.updateMovesView();
@@ -362,8 +326,8 @@ export default class GameController implements IGameCore {
                 this.checkEndGame();
                 this.model.applyGravityAndRefill();
                 this.fieldView.rebuild(this.model.getBoard());
-                if (onComplete) {
-                    onComplete();
+                if (event.onComplete) {
+                    event.onComplete();
                 }
             };
 
@@ -443,17 +407,64 @@ export default class GameController implements IGameCore {
             } else {
                 completeStep();
             }
-        };
+            };
 
-        const preAnimation = data && typeof data.preAnimation === "function" ? data.preAnimation : null;
+            const preAnimation = event.boosterData && typeof event.boosterData.preAnimation === "function" ? event.boosterData.preAnimation : null;
 
-        this.isAnimating = true;
+            this.isAnimating = true;
 
-        if (preAnimation && this.animationView) {
-            preAnimation(this.fieldView, this.animationView, applyBooster);
-        } else {
-            applyBooster();
+            if (preAnimation && this.animationView) {
+                preAnimation(this.fieldView, this.animationView, applyBooster);
+            } else {
+                applyBooster();
+            }
         }
+    }
+
+    getRemainingMoves(): number {
+        return this.model.getRemainingMoves();
+    }
+
+    getScore(): number {
+        return this.model.getScore();
+    }
+
+    getTargetScore(): number {
+        return this.model.getTargetScore();
+    }
+
+    addMoves(value: number): void {
+        this.model.addMoves(value);
+        this.updateMovesView();
+    }
+
+    getCellAtPosition(worldPos: cc.Vec2): { row: number; col: number } | null {
+        const localPos = this.parentNode.convertToNodeSpaceAR(worldPos);
+        const fv = this.fieldView as FieldView;
+        if (fv.getCellAtPosition) {
+            return fv.getCellAtPosition(localPos);
+        }
+        return null;
+    }
+
+    useBooster(boosterId: string, data?: any, onComplete?: () => void): void {
+        let tile: Tile = null;
+        if (data && typeof data.row === "number" && typeof data.col === "number") {
+            tile = this.fieldView.getTile(data.row, data.col);
+        }
+
+        if (!tile) {
+            tile = { row: -1, col: -1, node: null } as Tile;
+        }
+
+        const event: TileInputEvent = {
+            type: TileInputEventType.Booster,
+            tile: tile,
+            boosterId: boosterId,
+            boosterData: data || {},
+            onComplete: onComplete
+        };
+        this.handleEvent(event);
     }
 
 

@@ -9,6 +9,7 @@ import TileColorConfig from "../Config/TileColorConfig";
 import SuperTilesConfig from "../Config/SuperTilesConfig";
 import IGameCore from "../GameCore/IGameCore";
 import GameController from "../GameCore/GameController";
+import BlastGameModel from "../GameCore/BlastGameModel";
 import BlastGameCoreView from "../GameCore/BlastGameCoreView";
 import ShuffleNoMovesResolver from "../GameCore/ShuffleNoMovesResolver";
 import EndGamePanel from "../UI/EndGamePanel";
@@ -193,6 +194,7 @@ export default class DiInitializer extends cc.Component {
                 this.tileColorConfig,
                 moves,
                 targetScore,
+                (r, c, cl, m, t) => new BlastGameModel(r, c, cl, m, t),
                 this.movesLabel ? (value => {
                     this.movesLabel.string = value.toString();
                 }) : undefined,

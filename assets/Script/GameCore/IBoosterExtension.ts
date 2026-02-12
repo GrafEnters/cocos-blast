@@ -1,6 +1,6 @@
-import BlastGameModel, { BlastGameStepResult } from "./BlastGameModel";
+import IGameModel, { BlastGameStepResult } from "./IGameModel";
 
 export default interface IBoosterExtension {
     id: string;
-    handle(model: BlastGameModel, data?: any): BlastGameStepResult | null;
+    handle(model: IGameModel, data?: any): BlastGameStepResult | null;
 }

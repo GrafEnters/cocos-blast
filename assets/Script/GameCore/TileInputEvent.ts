@@ -6,6 +6,9 @@ type TileInputEvent = {
     tile: Tile;
     targetTile?: Tile;
     direction?: cc.Vec2;
+    boosterId?: string;
+    boosterData?: any;
+    onComplete?: () => void;
 };
 
 export default TileInputEvent;

@@ -4,6 +4,7 @@ enum TileInputEventType {
     Select,
     Deselect,
     PathExtend,
+    Booster,
 }
 
 export default TileInputEventType;
