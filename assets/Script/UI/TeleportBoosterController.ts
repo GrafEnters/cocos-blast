@@ -1,8 +1,10 @@
 import IGameController from "../GameCore/IGameController";
 import Tile from "../Tile";
 import BoosterButtonView from "./BoosterButtonView";
+import IBoosterController from "./IBoosterController";
+import {BoosterConfig} from "../Config/BoosterConfig";
 
-export default class TeleportBoosterController {
+export default class TeleportBoosterController implements IBoosterController {
     private overlay: cc.Node = null;
     private hintLabel: cc.Node = null;
     private boostersPanel: cc.Node = null;
@@ -18,6 +20,7 @@ export default class TeleportBoosterController {
         hintLabel: cc.Node,
         boostersPanel: cc.Node,
         gameCore: IGameController,
+        config: BoosterConfig,
         teleportButton: cc.Node
     ): void {
         this.overlay = overlay;

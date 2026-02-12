@@ -1,8 +1,11 @@
 import IGameController from "../GameCore/IGameController";
 import Tile from "../Tile";
 import BoosterButtonView from "./BoosterButtonView";
+import IBoosterController from "./IBoosterController";
+import {BoosterConfig} from "../Config/BoosterConfig";
+import {BombBoosterConfig} from "../Config/BombBoosterConfig";
 
-export default class BombBoosterController {
+export default class BombBoosterController implements IBoosterController {
     private overlay: cc.Node = null;
     private hintLabel: cc.Node = null;
     private boostersPanel: cc.Node = null;
@@ -18,15 +21,27 @@ export default class BombBoosterController {
         hintLabel: cc.Node,
         boostersPanel: cc.Node,
         gameCore: IGameController,
-        bombSpriteFrame: cc.SpriteFrame,
+        config: BoosterConfig,
         bombButton: cc.Node
     ): void {
         this.overlay = overlay;
         this.hintLabel = hintLabel;
         this.boostersPanel = boostersPanel;
         this.gameCore = gameCore;
-        this.bombSpriteFrame = bombSpriteFrame;
         this.bombButton = bombButton;
+
+        const bombConfig = config as BombBoosterConfig;
+        if (!bombConfig) {
+            throw new Error(`BombBoosterConfig is incorrect`)
+        }
+
+        const path = bombConfig.bombSprite;
+        cc.resources.load(path, cc.SpriteFrame, (err, spriteFrame: cc.SpriteFrame) => {
+            if (!err && spriteFrame) {
+                this.bombSpriteFrame = spriteFrame;
+            }
+        });
+
 
         if (this.overlay) {
             this.overlay.active = false;

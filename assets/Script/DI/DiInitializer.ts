@@ -1,9 +1,10 @@
-const { ccclass, property, executeInEditMode } = cc._decorator;
+const {ccclass, property, executeInEditMode} = cc._decorator;
 import DiContainer from "./DiContainer";
 import DiTokens from "./DiTokens";
 import MainGameConfig from "../Config/MainGameConfig";
 import MainLevelsConfig from "../Config/MainLevelConfig";
 import BoostersConfig from "../Config/BoostersConfig";
+import {BoosterConfig} from "../Config/BoosterConfig";
 import PlayerProfile from "../PlayerProfile";
 import TileColorConfig from "../Config/TileColorConfig";
 import SuperTilesConfig from "../Config/SuperTilesConfig";
@@ -15,9 +16,8 @@ import ShuffleNoMovesResolver from "../GameCore/ShuffleNoMovesResolver";
 import EndGamePanel from "../UI/EndGamePanel";
 import IInput from "../Input/IInput";
 import TapInput from "../Input/TapInput";
-import BombBoosterController from "../UI/BombBoosterController";
-import BoosterButtonView from "../UI/BoosterButtonView";
-import TeleportBoosterController from "../UI/TeleportBoosterController";
+import BoostersPanelView from "../UI/BoostersPanelView";
+import BoostersControllersFactory from "../UI/BoostersControllersFactory";
 import TileSpriteDictionary from "../GameCore/TileSpriteDictionary";
 
 @ccclass
@@ -51,20 +51,8 @@ export default class DiInitializer extends cc.Component {
     @property(cc.Node)
     gameRoot: cc.Node = null;
 
-    @property(cc.Node)
-    boostersPanel: cc.Node = null;
-
-    @property(cc.Prefab)
-    boosterButtonPrefab: cc.Prefab = null;
-
-    @property(cc.SpriteFrame)
-    bombSpriteFrame: cc.SpriteFrame = null;
-
-    @property(cc.Node)
-    activeBoosterOverlay: cc.Node = null;
-
-    @property(cc.Node)
-    activeBoosterHintLabel: cc.Node = null;
+    @property(BoostersPanelView)
+    boostersPanel: BoostersPanelView = null;
 
     @property(cc.Node)
     movesPanel: cc.Node = null;
@@ -141,7 +129,7 @@ export default class DiInitializer extends cc.Component {
             }
 
             if (this.boostersPanel) {
-                this.boostersPanel.active = true;
+                this.boostersPanel.node.active = true;
             }
 
             if (this.movesPanel) {
@@ -153,6 +141,7 @@ export default class DiInitializer extends cc.Component {
             }
 
             gameRootNode.removeAllChildren();
+
 
             const rows = this.mainLevelConfig ? this.mainLevelConfig.rows : 8;
             const cols = this.mainLevelConfig ? this.mainLevelConfig.cols : 8;
@@ -223,7 +212,7 @@ export default class DiInitializer extends cc.Component {
                     }
 
                     if (this.boostersPanel) {
-                        this.boostersPanel.active = false;
+                        this.boostersPanel.node.active = false;
                     }
 
                     if (this.movesPanel) {
@@ -242,7 +231,7 @@ export default class DiInitializer extends cc.Component {
                     }
 
                     if (this.boostersPanel) {
-                        this.boostersPanel.active = false;
+                        this.boostersPanel.node.active = false;
                     }
 
                     if (this.movesPanel) {
@@ -273,9 +262,14 @@ export default class DiInitializer extends cc.Component {
                 container.register(DiTokens.PlayerProfile, profile);
             }
 
+            if (this.boostersConfig && profile) {
+                profile.ensureBoostersInitialized(this.boostersConfig);
+            }
+
             gameCore.init();
             input.init();
-            this.initializeBoostersUI(container, gameCore);
+
+            this.initializeBoosters(gameCore);
         };
 
         if (this.superTilesConfig && typeof this.superTilesConfig.loadSuperTiles === "function") {
@@ -316,82 +310,12 @@ export default class DiInitializer extends cc.Component {
         }
     }
 
-    private initializeBoostersUI(container: DiContainer, gameCore: IGameController): void {
-        if (!this.boostersConfig || !this.boostersPanel || !this.boosterButtonPrefab) {
-            return;
-        }
+    private initializeBoosters(gameCore: IGameController): void {
+        const configs = this.boostersConfig.getBoosterConfigs();
+        const buttons = this.boostersPanel.initialize(configs as BoosterConfig[]);
 
-        const boostersContainer = this.boostersPanel.getChildByName("BoostersContainer") || this.boostersPanel;
-
-        // Удаляем ранее созданные кнопки бустеров, если инициализация вызывается повторно
-        const existingChildren = boostersContainer.children.slice();
-        for (let i = 0; i < existingChildren.length; i++) {
-            const child = existingChildren[i];
-            const view = child.getComponent(BoosterButtonView);
-            if (view) {
-                child.removeFromParent();
-                child.destroy();
-            }
-        }
-
-        const applyConfigs = () => {
-            const configs = this.boostersConfig.getBoosterConfigs();
-            if (!configs || configs.length === 0) {
-                return;
-            }
-
-            let profile: PlayerProfile = null;
-            if (container.has(DiTokens.PlayerProfile)) {
-                profile = container.resolve<PlayerProfile>(DiTokens.PlayerProfile);
-            }
-
-            if (profile) {
-                profile.ensureBoostersInitialized(this.boostersConfig);
-            }
-
-            let bombButtonNode: cc.Node = null;
-            let teleportButtonNode: cc.Node = null;
-
-            for (let i = 0; i < configs.length; i++) {
-                const cfg: any = configs[i];
-                if (!cfg || typeof cfg.id !== "string") {
-                    continue;
-                }
-
-                const node = cc.instantiate(this.boosterButtonPrefab);
-                boostersContainer.addChild(node);
-
-                const view = node.getComponent(BoosterButtonView);
-                if (view) {
-                    view.initFromConfig(cfg.id);
-                }
-
-                if (cfg.id === "bomb") {
-                    bombButtonNode = node;
-                }
-                if (cfg.id === "teleport") {
-                    teleportButtonNode = node;
-                }
-            }
-
-            if (bombButtonNode && this.bombSpriteFrame && this.activeBoosterOverlay && this.activeBoosterHintLabel) {
-                const bombBooster = new BombBoosterController();
-                bombBooster.init(this.activeBoosterOverlay, this.activeBoosterHintLabel, this.boostersPanel, gameCore, this.bombSpriteFrame, bombButtonNode);
-                container.register(DiTokens.BombBooster, bombBooster);
-            }
-
-            if (teleportButtonNode && this.activeBoosterOverlay && this.activeBoosterHintLabel) {
-                const teleportBooster = new TeleportBoosterController();
-                teleportBooster.init(this.activeBoosterOverlay, this.activeBoosterHintLabel, this.boostersPanel, gameCore, teleportButtonNode);
-                container.register(DiTokens.TeleportBooster, teleportBooster);
-            }
-        };
-
-        if (typeof this.boostersConfig.loadBoosters === "function") {
-            this.boostersConfig.loadBoosters(applyConfigs);
-        } else {
-            applyConfigs();
-        }
+        const boostersButtonFactory = new BoostersControllersFactory();
+        boostersButtonFactory.createControllers(configs as BoosterConfig[], buttons, this.boostersPanel, gameCore);
     }
 
     update() {

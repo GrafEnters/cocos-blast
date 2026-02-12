@@ -1,0 +1,49 @@
+import {BoosterConfig} from "../Config/BoosterConfig";
+import IGameController from "../GameCore/IGameController";
+import BoostersPanelView from "./BoostersPanelView";
+import BoosterButtonView from "./BoosterButtonView";
+import BombBoosterController from "./BombBoosterController";
+import TeleportBoosterController from "./TeleportBoosterController";
+import DiContainer from "../DI/DiContainer";
+import DiTokens from "../DI/DiTokens";
+import IBoosterController from "./IBoosterController";
+
+export default class BoostersControllersFactory {
+    createControllers(
+        configs: BoosterConfig[],
+        buttons: { [id: string]: BoosterButtonView },
+        panelView: BoostersPanelView,
+        gameCore: IGameController
+    ): void {
+        const panelNode = panelView.node;
+        const container = DiContainer.instance;
+
+        for (const key in buttons) {
+            let controller: IBoosterController;
+            let token: string;
+            switch (key) {
+                case "bomb":
+                    controller = new BombBoosterController();
+                    token = DiTokens.BombBooster;
+                    break;
+                case "teleport":
+                    controller = new TeleportBoosterController();
+                    token = DiTokens.TeleportBooster;
+                    break;
+                default:
+                    throw new Error(`Not identified booster ${key}`)
+                    continue;
+            }
+            controller.init(
+                panelView.activeBoosterOverlay,
+                panelView.activeBoosterHintLabel,
+                panelNode,
+                gameCore,
+                configs.find(c => c.id === key),
+                buttons[key].node
+            );
+            container.register(token, controller);
+        }
+    }
+}
+
