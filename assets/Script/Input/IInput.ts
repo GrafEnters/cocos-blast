@@ -1,5 +1,5 @@
 import Tile from "../Tile";
-import TileInputEventType from "../GameCore/TileInputEventType";
+import TileInputEventType from "./TileInputEventType";
 
 export default interface IInput {
     init(): void;

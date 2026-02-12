@@ -1,10 +1,10 @@
 import Tile from "../Tile";
 import IGameController from "./IGameController";
-import TileInputEventType from "./TileInputEventType";
-import TileInputEvent from "./TileInputEvent";
+import TileInputEventType from "../Input/TileInputEventType";
+import TileInputEvent from "../Input/TileInputEvent";
 import TileColorConfig from "../Config/TileColorConfig";
-import IGameModel, { GameEventResult } from "./IGameModel";
-import IAnimationView from "./IAnimationView";
+import IGameModel, { GameEventResult } from "./Models/IGameModel";
+import IAnimationView from "./Animations/IAnimationView";
 import IFieldView from "./IFieldView";
 import FieldView from "./FieldView";
 import INoMovesResolver from "./INoMovesResolver";

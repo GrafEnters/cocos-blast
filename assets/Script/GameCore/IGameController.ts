@@ -1,5 +1,5 @@
-import TileInputEventType from "./TileInputEventType";
-import TileInputEvent from "./TileInputEvent";
+import TileInputEventType from "../Input/TileInputEventType";
+import TileInputEvent from "../Input/TileInputEvent";
 
 export default interface IGameController {
     init(): void;

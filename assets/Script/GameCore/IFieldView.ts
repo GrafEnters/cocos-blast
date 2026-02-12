@@ -1,5 +1,5 @@
 import Tile from "../Tile";
-import { BlastGameBoardCell } from "./BlastGameModel";
+import { BlastGameBoardCell } from "./Models/BlastGameModel";
 
 export default interface IFieldView {
     init(parentNode: cc.Node): void;

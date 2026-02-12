@@ -1,6 +1,6 @@
 import Tile from "../Tile";
 import TileColorConfig from "../Config/TileColorConfig";
-import { BlastGameBoardCell } from "./BlastGameModel";
+import { BlastGameBoardCell } from "./Models/BlastGameModel";
 import IFieldView from "./IFieldView";
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
