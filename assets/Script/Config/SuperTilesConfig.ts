@@ -10,29 +10,34 @@ export default class SuperTilesConfig extends cc.Component {
 
     private _superTiles: SupertileConfig[] = [];
 
-    loadSuperTiles(callback: () => void): void {
+    async loadSuperTiles(): Promise<void> {
         if (this._superTiles.length > 0) {
-            callback();
             return;
         }
         const path = this.superTilesPath && this.superTilesPath.trim() ? this.superTilesPath.trim() : "SuperTiles";
-        cc.resources.loadDir(path, cc.JsonAsset, (err, assets: cc.JsonAsset[]) => {
-            if (!err && assets && assets.length > 0) {
-                const result: SupertileConfig[] = [];
-                for (let i = 0; i < assets.length; i++) {
-                    const asset = assets[i];
-                    if (!asset) {
-                        continue;
-                    }
-                    const data = asset.json as any;
-                    if (!data || typeof data.id !== "string") {
-                        continue;
-                    }
-                    result.push(data as SupertileConfig);
+        return new Promise<void>((resolve, reject) => {
+            cc.resources.loadDir(path, cc.JsonAsset, (err, assets: cc.JsonAsset[]) => {
+                if (err) {
+                    reject(err);
+                    return;
                 }
-                this._superTiles = result;
-            }
-            callback();
+                if (assets && assets.length > 0) {
+                    const result: SupertileConfig[] = [];
+                    for (let i = 0; i < assets.length; i++) {
+                        const asset = assets[i];
+                        if (!asset) {
+                            continue;
+                        }
+                        const data = asset.json as any;
+                        if (!data || typeof data.id !== "string") {
+                            continue;
+                        }
+                        result.push(data as SupertileConfig);
+                    }
+                    this._superTiles = result;
+                }
+                resolve();
+            });
         });
     }
 

@@ -5,7 +5,7 @@ import TileInputEvent from "./TileInputEvent";
 import IGameController from "../GameCore/IGameController";
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
-import IBoosterController from "../UI/IBoosterController";
+import IBoosterController from "../GameCore/Boosters/IBoosterController";
 
 export default class TapInput implements IInput {
 

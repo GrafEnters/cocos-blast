@@ -1,6 +1,6 @@
-import {BoosterConfig} from "../Config/BoosterConfig";
-import IGameController from "../GameCore/IGameController";
-import Tile from "../Tile";
+import {BoosterConfig} from "../../Config/BoosterConfig";
+import IGameController from "../IGameController";
+import Tile from "../../Tile";
 
 export default interface IBoosterController {
     init(

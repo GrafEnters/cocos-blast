@@ -10,31 +10,36 @@ export default class BoostersConfig extends cc.Component {
 
     private _boosters: BoosterConfig[] = [];
 
-    loadBoosters(callback: () => void): void {
+    async loadBoosters(): Promise<void> {
         if (this._boosters.length > 0) {
-            callback();
             return;
         }
 
         const path = this.boostersPath && this.boostersPath.trim() ? this.boostersPath.trim() : "Boosters";
 
-        cc.resources.loadDir(path, cc.JsonAsset, (err, assets: cc.JsonAsset[]) => {
-            if (!err && assets && assets.length > 0) {
-                const result: BoosterConfig[] = [];
-                for (let i = 0; i < assets.length; i++) {
-                    const asset = assets[i];
-                    if (!asset) {
-                        continue;
-                    }
-                    const data = asset.json as any;
-                    if (!data || typeof data.id !== "string") {
-                        continue;
-                    }
-                    result.push(data as BoosterConfig);
+        return new Promise<void>((resolve, reject) => {
+            cc.resources.loadDir(path, cc.JsonAsset, (err, assets: cc.JsonAsset[]) => {
+                if (err) {
+                    reject(err);
+                    return;
                 }
-                this._boosters = result;
-            }
-            callback();
+                if (assets && assets.length > 0) {
+                    const result: BoosterConfig[] = [];
+                    for (let i = 0; i < assets.length; i++) {
+                        const asset = assets[i];
+                        if (!asset) {
+                            continue;
+                        }
+                        const data = asset.json as any;
+                        if (!data || typeof data.id !== "string") {
+                            continue;
+                        }
+                        result.push(data as BoosterConfig);
+                    }
+                    this._boosters = result;
+                }
+                resolve();
+            });
         });
     }
 

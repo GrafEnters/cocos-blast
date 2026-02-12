@@ -1,9 +1,9 @@
-import IGameController from "../GameCore/IGameController";
-import Tile from "../Tile";
-import BoosterButtonView from "./BoosterButtonView";
+import IGameController from "../IGameController";
+import Tile from "../../Tile";
+import BoosterButtonView from "../../UI/BoosterButtonView";
 import IBoosterController from "./IBoosterController";
-import {BoosterConfig} from "../Config/BoosterConfig";
-import {BombBoosterConfig} from "../Config/BombBoosterConfig";
+import {BoosterConfig} from "../../Config/BoosterConfig";
+import {BombBoosterConfig} from "../../Config/BombBoosterConfig";
 
 export default class BombBoosterController implements IBoosterController {
     private overlay: cc.Node = null;

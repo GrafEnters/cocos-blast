@@ -15,23 +15,28 @@ export default class MainLevelsConfig extends cc.Component {
         return this._levels;
     }
 
-    loadLevels(callback: () => void): void {
+    async loadLevels(): Promise<void> {
         if (this._levels.length > 0) {
-            callback();
             return;
         }
 
         const path = this.levelsPath && this.levelsPath.trim() ? this.levelsPath.trim() : "Configs/Levels";
 
-        cc.resources.loadDir(path, cc.JsonAsset, (err, assets: cc.JsonAsset[]) => {
-            if (!err && assets && assets.length > 0) {
-                this._levels = assets.sort((a, b) => {
-                    const idA = (a.json && (a.json as any).id) != null ? (a.json as any).id : 0;
-                    const idB = (b.json && (b.json as any).id) != null ? (b.json as any).id : 0;
-                    return idA - idB;
-                });
-            }
-            callback();
+        return new Promise<void>((resolve, reject) => {
+            cc.resources.loadDir(path, cc.JsonAsset, (err, assets: cc.JsonAsset[]) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                if (assets && assets.length > 0) {
+                    this._levels = assets.sort((a, b) => {
+                        const idA = (a.json && (a.json as any).id) != null ? (a.json as any).id : 0;
+                        const idB = (b.json && (b.json as any).id) != null ? (b.json as any).id : 0;
+                        return idA - idB;
+                    });
+                }
+                resolve();
+            });
         });
     }
 

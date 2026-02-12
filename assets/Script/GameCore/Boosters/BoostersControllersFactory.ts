@@ -1,11 +1,11 @@
-import {BoosterConfig} from "../Config/BoosterConfig";
-import IGameController from "../GameCore/IGameController";
-import BoostersPanelView from "./BoostersPanelView";
-import BoosterButtonView from "./BoosterButtonView";
+import {BoosterConfig} from "../../Config/BoosterConfig";
+import IGameController from "../IGameController";
+import BoostersPanelView from "../../UI/BoostersPanelView";
+import BoosterButtonView from "../../UI/BoosterButtonView";
 import BombBoosterController from "./BombBoosterController";
 import TeleportBoosterController from "./TeleportBoosterController";
-import DiContainer from "../DI/DiContainer";
-import DiTokens from "../DI/DiTokens";
+import DiContainer from "../../DI/DiContainer";
+import DiTokens from "../../DI/DiTokens";
 import IBoosterController from "./IBoosterController";
 
 export default class BoostersControllersFactory {
