@@ -42,11 +42,11 @@ export default class AdminPanel extends cc.Component {
     }
 
     private onAddMoves() {
-        if (!DiContainer.instance.has(DiTokens.GameCore)) {
+        if (!DiContainer.instance.has(DiTokens.GameController)) {
             return;
         }
 
-        const gameCore = DiContainer.instance.resolve<IGameController>(DiTokens.GameCore);
+        const gameCore = DiContainer.instance.resolve<IGameController>(DiTokens.GameController);
 
         if (!gameCore) {
             return;

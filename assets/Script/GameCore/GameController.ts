@@ -6,36 +6,25 @@ import TileColorConfig from "../Config/TileColorConfig";
 import IGameModel, {GameEventResult} from "./Models/IGameModel";
 import IAnimationView from "./Animations/IAnimationView";
 import IFieldView from "./IFieldView";
-import FieldView from "./FieldView";
 import INoMovesResolver from "./INoMovesResolver";
 import IGameUi from "../UI/IGameUi";
 
 export default class GameController implements IGameController {
     private model: IGameModel = null;
     private ui: IGameUi = null;
-
-    private colors: string[];
-    private tileSize: number;
-    private tileSpacing: number;
-    private tileColorConfig: TileColorConfig = null;
     private animationView: IAnimationView = null;
     private fieldView: IFieldView = null;
     private noMovesResolver: INoMovesResolver | null = null;
     private initialField: (string | null)[][] | null = null;
     private isAnimating: boolean = false;
 
-    constructor(rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, model: IGameModel, ui: IGameUi, animationView: IAnimationView, noMovesResolver?: INoMovesResolver | null, initialField?: (string | null)[][] | null) {
-        this.colors = colors && colors.length > 0 ? colors.slice() : ["red", "green", "blue", "yellow"];
-        this.tileSize = tileSize;
-        this.tileSpacing = tileSpacing;
-        this.tileColorConfig = tileColorConfig;
+    constructor(model: IGameModel, ui: IGameUi, fieldView: IFieldView, animationView: IAnimationView, noMovesResolver?: INoMovesResolver | null, initialField?: (string | null)[][] | null) {
+        this.model = model;
         this.ui = ui;
+        this.fieldView = fieldView;
         this.animationView = animationView;
         this.noMovesResolver = noMovesResolver === undefined ? null : noMovesResolver;
         this.initialField = initialField === undefined ? null : initialField;
-
-        this.model = model;
-        this.fieldView = new FieldView(rows, cols, this.colors, tileSize, tileSpacing, null, tileColorConfig);
     }
 
     init(): void {
@@ -152,8 +141,10 @@ export default class GameController implements IGameController {
 
     getCellAtPosition(worldPos: cc.Vec2): { row: number; col: number } | null {
         const localPos = this.ui.getRootNode().convertToNodeSpaceAR(worldPos);
-        const fv = this.fieldView as FieldView;
-        return fv.getCellAtPosition(localPos);
+        if (this.fieldView.getCellAtPosition) {
+            return this.fieldView.getCellAtPosition(localPos);
+        }
+        return null;
     }
 
     useBooster(boosterId: string, data?: any, onComplete?: () => void): void {
