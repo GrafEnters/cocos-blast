@@ -177,18 +177,6 @@ export default class GameController implements IGameController {
     }
 
     private playEventAnimations(eventResult: GameEventResult, onComplete?: () => void): void {
-        const result = eventResult.stepResult;
-        const animationSteps = eventResult.animationSteps || [];
-
-        const tilesToPop: Tile[] = [];
-        for (let i = 0; i < result.removed.length; i++) {
-            const cell = result.removed[i];
-            const visualTile = this.fieldView.getTile(cell.row, cell.col);
-            if (visualTile) {
-                tilesToPop.push(visualTile);
-            }
-        }
-
         this.isAnimating = true;
 
         const completeStep = () => {
@@ -204,83 +192,12 @@ export default class GameController implements IGameController {
             }
         };
 
-        const applyAnimations = () => {
-            if (!this.animationView || tilesToPop.length === 0) {
-                completeStep();
-                return;
-            }
-
-            if (animationSteps.length > 0) {
-                const steps: Tile[][] = [];
-                const used: { [key: string]: boolean } = {};
-                const depthsUsed: { [key: string]: boolean } = {};
-                const depths: number[] = [];
-
-                for (let i = 0; i < animationSteps.length; i++) {
-                    const entry = animationSteps[i];
-                    const depthKey = entry.depth.toString();
-                    if (!depthsUsed[depthKey]) {
-                        depthsUsed[depthKey] = true;
-                        depths.push(entry.depth);
-                    }
-                }
-
-                depths.sort((a, b) => a - b);
-
-                for (let d = 0; d < depths.length; d++) {
-                    const depth = depths[d];
-                    const stepTiles: Tile[] = [];
-
-                    for (let i = 0; i < animationSteps.length; i++) {
-                        const entry = animationSteps[i];
-                        if (entry.depth !== depth) {
-                            continue;
-                        }
-
-                        const stepCells = entry.cells;
-                        for (let j = 0; j < stepCells.length; j++) {
-                            const cell = stepCells[j];
-                            const key = cell.row + "_" + cell.col;
-                            if (used[key]) {
-                                continue;
-                            }
-                            const visualTile = this.fieldView.getTile(cell.row, cell.col);
-                            if (visualTile) {
-                                used[key] = true;
-                                stepTiles.push(visualTile);
-                            }
-                        }
-                    }
-
-                    if (stepTiles.length > 0) {
-                        steps.push(stepTiles);
-                    }
-                }
-
-                if (steps.length > 0) {
-                    let index = 0;
-                    const playNext = () => {
-                        if (index >= steps.length) {
-                            completeStep();
-                            return;
-                        }
-                        const group = steps[index];
-                        index++;
-                        this.animationView.playGroupRemoveAnimation(group, playNext);
-                    };
-                    playNext();
-                    return;
-                }
-            }
-
-            this.animationView.playGroupRemoveAnimation(tilesToPop, completeStep);
-        };
-
-        if (eventResult.preAnimation && this.animationView) {
-            eventResult.preAnimation(this.fieldView, this.animationView, applyAnimations);
-        } else {
-            applyAnimations();
+        if (!this.animationView) {
+            completeStep();
+            return;
         }
+
+        this.animationView.playEventAnimations(eventResult, this.fieldView, completeStep);
     }
 
     getRemainingMoves(): number {
