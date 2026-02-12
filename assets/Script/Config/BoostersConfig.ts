@@ -1,4 +1,6 @@
-const { ccclass, property } = cc._decorator;
+import {BoosterConfig} from "./BoosterConfig";
+
+const {ccclass, property} = cc._decorator;
 
 @ccclass
 export default class BoostersConfig extends cc.Component {
@@ -6,11 +8,7 @@ export default class BoostersConfig extends cc.Component {
     @property
     boostersPath: string = "Boosters";
 
-    private _boosters: cc.JsonAsset[] = [];
-
-    get boosters(): cc.JsonAsset[] {
-        return this._boosters;
-    }
+    private _boosters: BoosterConfig[] = [];
 
     loadBoosters(callback: () => void): void {
         if (this._boosters.length > 0) {
@@ -22,42 +20,45 @@ export default class BoostersConfig extends cc.Component {
 
         cc.resources.loadDir(path, cc.JsonAsset, (err, assets: cc.JsonAsset[]) => {
             if (!err && assets && assets.length > 0) {
-                this._boosters = assets.slice();
+                const result: BoosterConfig[] = [];
+                for (let i = 0; i < assets.length; i++) {
+                    const asset = assets[i];
+                    if (!asset) {
+                        continue;
+                    }
+                    const data = asset.json as any;
+                    if (!data || typeof data.id !== "string") {
+                        continue;
+                    }
+                    result.push(data as BoosterConfig);
+                }
+                this._boosters = result;
             }
             callback();
         });
     }
 
-    getBoosterConfigs(): any[] {
+    getBoosterConfigs(): BoosterConfig[] {
         if (!this._boosters || this._boosters.length === 0) {
             return [];
         }
-        const result: any[] = [];
-        for (let i = 0; i < this._boosters.length; i++) {
-            const asset = this._boosters[i];
-            if (!asset) {
-                continue;
-            }
-            const data = asset.json as any;
-            if (data) {
-                result.push(data);
-            }
-        }
-        return result;
+
+
+        return this._boosters.slice();
+
     }
 
-    getBoosterConfig(id: string): any | null {
+    getBoosterConfig(id: string): BoosterConfig {
         if (!id) {
-            return null;
+            throw new Error("No booster config for empty id");
         }
-        const configs = this.getBoosterConfigs();
-        for (let i = 0; i < configs.length; i++) {
-            const cfg = configs[i];
+        for (let i = 0; i < this._boosters.length; i++) {
+            const cfg = this._boosters[i];
             if (cfg && cfg.id === id) {
                 return cfg;
             }
         }
-        return null;
+        throw new Error(`No booster config for id ${id}`);
     }
 }
 

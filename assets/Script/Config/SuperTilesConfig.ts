@@ -1,3 +1,5 @@
+import {SupertileConfig} from "./SupertileConfig";
+
 const { ccclass, property } = cc._decorator;
 
 @ccclass
@@ -44,10 +46,7 @@ export default class SuperTilesConfig extends cc.Component {
         return result;
     }
 
-    getSuperTileConfig(id: string): any | null {
-        if (!id) {
-            return null;
-        }
+    getSuperTileConfig(id: string): SupertileConfig {
         const configs = this.getSuperTileConfigs();
         for (let i = 0; i < configs.length; i++) {
             const cfg = configs[i];
@@ -55,7 +54,7 @@ export default class SuperTilesConfig extends cc.Component {
                 return cfg;
             }
         }
-        return null;
+        throw new Error(`No supertile config for id ${id}`)
     }
 
     getSuperTileTypeForSize(groupSize: number): string | null {

@@ -1,8 +1,12 @@
 import IBoosterExtension from "./IBoosterExtension";
 import IGameModel, { BlastGameStepResult } from "./IGameModel";
+import type { BoosterConfig } from "../Config/BoosterConfig";
 
 export default class TeleportBoosterExtension implements IBoosterExtension {
     id: string = "teleport";
+
+    constructor(config: BoosterConfig) {
+    }
 
     handle(model: IGameModel, data?: any): BlastGameStepResult | null {
         if (!data || typeof data.fromRow !== "number" || typeof data.fromCol !== "number" || 

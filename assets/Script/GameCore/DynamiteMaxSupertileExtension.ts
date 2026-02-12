@@ -1,8 +1,12 @@
 import ISupertileExtension from "./ISupertileExtension";
 import IGameModel, { BlastGameStepResult } from "./IGameModel";
+import type { SupertileConfig } from "../Config/SupertileConfig";
 
 export default class DynamiteMaxSupertileExtension implements ISupertileExtension {
     id: string = "dynamiteMax";
+
+    constructor(config: SupertileConfig) {
+    }
 
     handle(model: IGameModel, row: number, col: number, data?: any): BlastGameStepResult | null {
         const removed: { row: number; col: number }[] = [];

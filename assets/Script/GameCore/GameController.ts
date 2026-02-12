@@ -8,19 +8,6 @@ import IAnimationView from "./IAnimationView";
 import IFieldView from "./IFieldView";
 import FieldView from "./FieldView";
 import INoMovesResolver from "./INoMovesResolver";
-import SuperTilesConfig from "../Config/SuperTilesConfig";
-import DiContainer from "../DI/DiContainer";
-import DiTokens from "../DI/DiTokens";
-import TileSpriteDictionary from "./TileSpriteDictionary";
-import SupertileExtensionFactory from "./SupertileExtensionFactory";
-import RocketHSupertileExtension from "./RocketHSupertileExtension";
-import RocketVSupertileExtension from "./RocketVSupertileExtension";
-import DynamiteSupertileExtension from "./DynamiteSupertileExtension";
-import DynamiteMaxSupertileExtension from "./DynamiteMaxSupertileExtension";
-import BoosterExtensionFactory from "./BoosterExtensionFactory";
-import BombBoosterExtension from "./BombBoosterExtension";
-import TeleportBoosterExtension from "./TeleportBoosterExtension";
-import BoostersConfig from "../Config/BoostersConfig";
 
 export default class GameController implements IGameController {
     private parentNode: cc.Node;
@@ -35,8 +22,6 @@ export default class GameController implements IGameController {
     private noMovesResolver: INoMovesResolver | null = null;
     private initialField: (string | null)[][] | null = null;
 
-    private superTilesConfig: SuperTilesConfig | null = null;
-
     private isAnimating: boolean = false;
 
     private movesChangedCallback: ((moves: number) => void) | null = null;
@@ -44,7 +29,7 @@ export default class GameController implements IGameController {
     private winCallback: (() => void) | null = null;
     private loseCallback: (() => void) | null = null;
 
-    constructor(parentNode: cc.Node, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, moves: number, targetScore: number, modelFactory: (rows: number, cols: number, colors: string[], moves: number, targetScore: number) => IGameModel, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView, winCallback?: () => void, loseCallback?: () => void, noMovesResolver?: INoMovesResolver | null, initialField?: (string | null)[][] | null, superTilesConfig?: SuperTilesConfig | null) {
+    constructor(parentNode: cc.Node, rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, tileColorConfig: TileColorConfig, model: IGameModel, movesChangedCallback?: (moves: number) => void, scoreChangedCallback?: (score: number, targetScore: number) => void, animationView?: IAnimationView, winCallback?: () => void, loseCallback?: () => void, noMovesResolver?: INoMovesResolver | null, initialField?: (string | null)[][] | null) {
         this.parentNode = parentNode;
         this.colors = colors && colors.length > 0 ? colors.slice() : ["red", "green", "blue", "yellow"];
         this.tileSize = tileSize;
@@ -57,59 +42,9 @@ export default class GameController implements IGameController {
         this.loseCallback = loseCallback || null;
         this.noMovesResolver = noMovesResolver === undefined ? null : noMovesResolver;
         this.initialField = initialField === undefined ? null : initialField;
-        this.superTilesConfig = superTilesConfig === undefined ? null : superTilesConfig;
 
-        this.model = modelFactory(rows, cols, this.colors, moves, targetScore);
+        this.model = model;
         this.fieldView = new FieldView(rows, cols, this.colors, tileSize, tileSpacing, null, tileColorConfig);
-
-        const container = DiContainer.instance;
-        let resolvedSuperTilesConfig: SuperTilesConfig | null = null;
-        if (container.has(DiTokens.SuperTilesConfig)) {
-            const superTilesConfig = container.resolve<SuperTilesConfig>(DiTokens.SuperTilesConfig);
-            if (superTilesConfig) {
-                resolvedSuperTilesConfig = superTilesConfig;
-                this.model.setSuperTileGenerationCallback((size: number) => {
-                    return superTilesConfig.getSuperTileTypeForSize(size);
-                });
-            }
-        }
-        if (!resolvedSuperTilesConfig && this.superTilesConfig) {
-            resolvedSuperTilesConfig = this.superTilesConfig;
-        }
-
-        const extensionFactory = new SupertileExtensionFactory();
-        extensionFactory.register(new RocketHSupertileExtension());
-        extensionFactory.register(new RocketVSupertileExtension());
-        extensionFactory.register(new DynamiteMaxSupertileExtension());
-
-        let dynamiteRadius = 2;
-        if (resolvedSuperTilesConfig) {
-            const cfg = resolvedSuperTilesConfig.getSuperTileConfig("dynamite");
-            if (cfg && typeof cfg.radius === "number" && cfg.radius >= 0) {
-                dynamiteRadius = cfg.radius;
-            }
-        }
-        extensionFactory.register(new DynamiteSupertileExtension(dynamiteRadius));
-
-        this.model.setSuperTileExtensionFactory(extensionFactory);
-
-        const boosterExtensionFactory = new BoosterExtensionFactory();
-        
-        let bombRadius = 1;
-        if (container.has(DiTokens.BoostersConfig)) {
-            const boostersConfig = container.resolve<BoostersConfig>(DiTokens.BoostersConfig);
-            if (boostersConfig) {
-                const bombConfig = boostersConfig.getBoosterConfig("bomb");
-                if (bombConfig && typeof bombConfig.radius === "number" && bombConfig.radius >= 0) {
-                    bombRadius = bombConfig.radius;
-                }
-            }
-        }
-        
-        boosterExtensionFactory.register(new BombBoosterExtension(bombRadius));
-        boosterExtensionFactory.register(new TeleportBoosterExtension());
-
-        this.model.setBoosterExtensionFactory(boosterExtensionFactory);
     }
 
     init(): void {

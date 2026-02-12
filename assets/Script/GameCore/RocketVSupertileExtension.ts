@@ -1,8 +1,12 @@
 import ISupertileExtension from "./ISupertileExtension";
 import IGameModel, { BlastGameStepResult } from "./IGameModel";
+import type { SupertileConfig } from "../Config/SupertileConfig";
 
 export default class RocketVSupertileExtension implements ISupertileExtension {
     id: string = "rocketV";
+
+    constructor(config: SupertileConfig) {
+    }
 
     handle(model: IGameModel, row: number, col: number, data?: any): BlastGameStepResult | null {
         if (col < 0 || col >= model.getCols()) {

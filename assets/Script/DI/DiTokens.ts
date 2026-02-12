@@ -11,5 +11,6 @@ export default class DiTokens {
     static readonly PlayerProfile = "PlayerProfile";
     static readonly SuperTilesConfig = "SuperTilesConfig";
     static readonly TileSpriteDictionary = "TileSpriteDictionary";
+    static readonly GameModelFactory = "GameModelFactory";
 }
 

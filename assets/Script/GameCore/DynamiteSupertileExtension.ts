@@ -1,13 +1,18 @@
 import ISupertileExtension from "./ISupertileExtension";
 import IGameModel, { BlastGameStepResult } from "./IGameModel";
+import type { SupertileConfig } from "../Config/SupertileConfig";
 
 export default class DynamiteSupertileExtension implements ISupertileExtension {
     id: string = "dynamite";
 
     private radius: number;
 
-    constructor(radius: number) {
-        this.radius = radius >= 0 ? radius : 0;
+    constructor(config: SupertileConfig) {
+        if (typeof config.radius === "number" && config.radius >= 0) {
+            this.radius = config.radius;
+        } else {
+            this.radius = 2;
+        }
     }
 
     handle(model: IGameModel, row: number, col: number, data?: any): BlastGameStepResult | null {

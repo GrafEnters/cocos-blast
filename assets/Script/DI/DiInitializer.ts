@@ -9,7 +9,7 @@ import TileColorConfig from "../Config/TileColorConfig";
 import SuperTilesConfig from "../Config/SuperTilesConfig";
 import IGameController from "../GameCore/IGameController";
 import GameController from "../GameCore/GameController";
-import BlastGameModel from "../GameCore/BlastGameModel";
+import GameModelFactory from "../GameCore/GameModelFactory";
 import BlastGameCoreView from "../GameCore/BlastGameCoreView";
 import ShuffleNoMovesResolver from "../GameCore/ShuffleNoMovesResolver";
 import EndGamePanel from "../UI/EndGamePanel";
@@ -122,6 +122,17 @@ export default class DiInitializer extends cc.Component {
         }
         container.register(DiTokens.TileSpriteDictionary, tileSpriteDictionary);
 
+        const gameModelFactory = new GameModelFactory(container);
+        container.register(DiTokens.GameModelFactory, gameModelFactory);
+
+        const ensureBoostersLoaded = (next: () => void) => {
+            if (this.boostersConfig && typeof this.boostersConfig.loadBoosters === "function") {
+                this.boostersConfig.loadBoosters(next);
+            } else {
+                next();
+            }
+        };
+
         const buildAndStartGame = () => {
             const gameRootNode = this.gameRoot ? this.gameRoot : this.node;
 
@@ -184,6 +195,8 @@ export default class DiInitializer extends cc.Component {
 
             const noMovesResolver = this.enableShuffle ? new ShuffleNoMovesResolver(3) : null;
 
+            const model = gameModelFactory.create(rows, cols, colors, moves, targetScore, this.superTilesConfig, this.boostersConfig);
+
             const gameCore: IGameController = new GameController(
                 gameRootNode,
                 rows,
@@ -192,9 +205,7 @@ export default class DiInitializer extends cc.Component {
                 tileSize,
                 tileSpacing,
                 this.tileColorConfig,
-                moves,
-                targetScore,
-                (r, c, cl, m, t) => new BlastGameModel(r, c, cl, m, t),
+                model,
                 this.movesLabel ? (value => {
                     this.movesLabel.string = value.toString();
                 }) : undefined,
@@ -245,8 +256,7 @@ export default class DiInitializer extends cc.Component {
                     endGamePanel.showLose();
                 }) : undefined,
                 noMovesResolver,
-                initialField,
-                this.superTilesConfig || null
+                initialField
             );
 
             container.register(DiTokens.GameCore, gameCore);
@@ -272,7 +282,7 @@ export default class DiInitializer extends cc.Component {
             this.superTilesConfig.loadSuperTiles(() => {
                 const configs = this.superTilesConfig.getSuperTileConfigs();
                 if (!configs || configs.length === 0) {
-                    buildAndStartGame();
+                    ensureBoostersLoaded(buildAndStartGame);
                     return;
                 }
                 let pending = 0;
@@ -293,16 +303,16 @@ export default class DiInitializer extends cc.Component {
                         }
                         pending--;
                         if (pending <= 0) {
-                            buildAndStartGame();
+                            ensureBoostersLoaded(buildAndStartGame);
                         }
                     });
                 }
                 if (pending === 0) {
-                    buildAndStartGame();
+                    ensureBoostersLoaded(buildAndStartGame);
                 }
             });
         } else {
-            buildAndStartGame();
+            ensureBoostersLoaded(buildAndStartGame);
         }
     }
 
