@@ -2,6 +2,7 @@
   "id": "bomb",
   "boosterIcon": "Boosters/bomb/icon_booster_bomb",
   "initialCount": 5,
+  "bombSprite": "Boosters/bomb/block_bomb",
   "radius": 1
 }
 
