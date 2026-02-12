@@ -2,7 +2,7 @@ import IInput from "./IInput";
 import Tile from "../Tile";
 import TileInputEventType from "../GameCore/TileInputEventType";
 import TileInputEvent from "../GameCore/TileInputEvent";
-import IGameCore from "../GameCore/IGameCore";
+import IGameController from "../GameCore/IGameController";
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
 import BombBoosterController from "../UI/BombBoosterController";
@@ -10,11 +10,11 @@ import TeleportBoosterController from "../UI/TeleportBoosterController";
 
 export default class TapInput implements IInput {
 
-    private gameCore: IGameCore;
+    private gameCore: IGameController;
     private bombBooster: BombBoosterController = null;
     private teleportBooster: TeleportBoosterController = null;
 
-    constructor(gameCore: IGameCore) {
+    constructor(gameCore: IGameController) {
         this.gameCore = gameCore;
     }
 

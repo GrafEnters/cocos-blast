@@ -7,7 +7,7 @@ import BoostersConfig from "../Config/BoostersConfig";
 import PlayerProfile from "../PlayerProfile";
 import TileColorConfig from "../Config/TileColorConfig";
 import SuperTilesConfig from "../Config/SuperTilesConfig";
-import IGameCore from "../GameCore/IGameCore";
+import IGameController from "../GameCore/IGameController";
 import GameController from "../GameCore/GameController";
 import BlastGameModel from "../GameCore/BlastGameModel";
 import BlastGameCoreView from "../GameCore/BlastGameCoreView";
@@ -184,7 +184,7 @@ export default class DiInitializer extends cc.Component {
 
             const noMovesResolver = this.enableShuffle ? new ShuffleNoMovesResolver(3) : null;
 
-            const gameCore: IGameCore = new GameController(
+            const gameCore: IGameController = new GameController(
                 gameRootNode,
                 rows,
                 cols,
@@ -306,7 +306,7 @@ export default class DiInitializer extends cc.Component {
         }
     }
 
-    private initializeBoostersUI(container: DiContainer, gameCore: IGameCore): void {
+    private initializeBoostersUI(container: DiContainer, gameCore: IGameController): void {
         if (!this.boostersConfig || !this.boostersPanel || !this.boosterButtonPrefab) {
             return;
         }

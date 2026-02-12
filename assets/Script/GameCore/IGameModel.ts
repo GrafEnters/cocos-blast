@@ -1,6 +1,7 @@
 import SupertileExtensionFactory from "./SupertileExtensionFactory";
 import BoosterExtensionFactory from "./BoosterExtensionFactory";
 import TileInputEventType from "./TileInputEventType";
+import TileInputEvent from "./TileInputEvent";
 
 export type BlastGameBoardCell = string | null;
 
@@ -12,8 +13,20 @@ export interface BlastGameStepResult {
     scoreDelta: number;
 }
 
+export interface GameAnimationStep {
+    depth: number;
+    cells: { row: number; col: number }[];
+}
+
+export interface GameEventResult {
+    stepResult: BlastGameStepResult;
+    animationSteps: GameAnimationStep[];
+    preAnimation?: (fieldView: any, animationView: any, done: () => void) => void;
+}
+
 export default interface IGameModel {
     getSupportedEvents(): TileInputEventType[];
+    handleEvent(event: TileInputEvent): GameEventResult | null;
     init(initialField?: (string | null)[][] | null): void;
     getBoard(): BlastGameBoardCell[][];
     getRemainingMoves(): number;

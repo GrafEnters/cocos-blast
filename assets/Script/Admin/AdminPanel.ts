@@ -1,7 +1,7 @@
 const { ccclass, property } = cc._decorator;
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
-import IGameCore from "../GameCore/IGameCore";
+import IGameController from "../GameCore/IGameController";
 import MainLevelsConfig from "../Config/MainLevelConfig";
 
 @ccclass
@@ -46,7 +46,7 @@ export default class AdminPanel extends cc.Component {
             return;
         }
 
-        const gameCore = DiContainer.instance.resolve<IGameCore>(DiTokens.GameCore);
+        const gameCore = DiContainer.instance.resolve<IGameController>(DiTokens.GameCore);
 
         if (!gameCore) {
             return;

@@ -1,7 +1,7 @@
 import TileInputEventType from "./TileInputEventType";
 import TileInputEvent from "./TileInputEvent";
 
-export default interface IGameCore {
+export default interface IGameController {
     init(): void;
     getSupportedEvents(): TileInputEventType[];
     handleEvent(event: TileInputEvent): void;

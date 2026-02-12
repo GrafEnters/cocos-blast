@@ -1,9 +1,9 @@
 import Tile from "../Tile";
-import IGameCore from "./IGameCore";
+import IGameController from "./IGameController";
 import TileInputEventType from "./TileInputEventType";
 import TileInputEvent from "./TileInputEvent";
 import TileColorConfig from "../Config/TileColorConfig";
-import IGameModel from "./IGameModel";
+import IGameModel, { GameEventResult } from "./IGameModel";
 import IAnimationView from "./IAnimationView";
 import IFieldView from "./IFieldView";
 import FieldView from "./FieldView";
@@ -22,7 +22,7 @@ import BombBoosterExtension from "./BombBoosterExtension";
 import TeleportBoosterExtension from "./TeleportBoosterExtension";
 import BoostersConfig from "../Config/BoostersConfig";
 
-export default class GameController implements IGameCore {
+export default class GameController implements IGameController {
     private parentNode: cc.Node;
     private colors: string[];
     private tileSize: number;
@@ -165,34 +165,25 @@ export default class GameController implements IGameCore {
             return;
         }
 
-        if (this.model.getRemainingMoves() <= 0) {
-            return;
-        }
-
-        if (this.model.getTargetScore() > 0 && this.model.getScore() >= this.model.getTargetScore()) {
-            return;
-        }
-
-        if (event.type === TileInputEventType.Tap) {
-            const tile = event.tile;
-
-            if (!tile) {
-                return;
+        const eventResult = this.model.handleEvent(event);
+        if (!eventResult) {
+            if (event.onComplete) {
+                event.onComplete();
             }
-
-            const chainData: { superTileChainSteps: { depth: number; cells: { row: number; col: number }[] }[]; depth?: number } = { superTileChainSteps: [] };
-            const result = this.model.handleTap(tile.row, tile.col, chainData);
-
-        if (!result) {
             return;
         }
+
+        this.playEventAnimations(eventResult, event.onComplete);
+    }
+
+    private playEventAnimations(eventResult: GameEventResult, onComplete?: () => void): void {
+        const result = eventResult.stepResult;
+        const animationSteps = eventResult.animationSteps || [];
 
         const tilesToPop: Tile[] = [];
-
         for (let i = 0; i < result.removed.length; i++) {
             const cell = result.removed[i];
             const visualTile = this.fieldView.getTile(cell.row, cell.col);
-
             if (visualTile) {
                 tilesToPop.push(visualTile);
             }
@@ -208,19 +199,25 @@ export default class GameController implements IGameCore {
             this.checkEndGame();
             this.model.applyGravityAndRefill();
             this.fieldView.rebuild(this.model.getBoard());
+            if (onComplete) {
+                onComplete();
+            }
         };
 
-        if (this.animationView && tilesToPop.length > 0) {
-            const hasChain = chainData.superTileChainSteps && chainData.superTileChainSteps.length > 0;
+        const applyAnimations = () => {
+            if (!this.animationView || tilesToPop.length === 0) {
+                completeStep();
+                return;
+            }
 
-            if (hasChain) {
+            if (animationSteps.length > 0) {
                 const steps: Tile[][] = [];
                 const used: { [key: string]: boolean } = {};
                 const depthsUsed: { [key: string]: boolean } = {};
                 const depths: number[] = [];
 
-                for (let i = 0; i < chainData.superTileChainSteps.length; i++) {
-                    const entry = chainData.superTileChainSteps[i];
+                for (let i = 0; i < animationSteps.length; i++) {
+                    const entry = animationSteps[i];
                     const depthKey = entry.depth.toString();
                     if (!depthsUsed[depthKey]) {
                         depthsUsed[depthKey] = true;
@@ -234,14 +231,13 @@ export default class GameController implements IGameCore {
                     const depth = depths[d];
                     const stepTiles: Tile[] = [];
 
-                    for (let i = 0; i < chainData.superTileChainSteps.length; i++) {
-                        const entry = chainData.superTileChainSteps[i];
+                    for (let i = 0; i < animationSteps.length; i++) {
+                        const entry = animationSteps[i];
                         if (entry.depth !== depth) {
                             continue;
                         }
 
                         const stepCells = entry.cells;
-
                         for (let j = 0; j < stepCells.length; j++) {
                             const cell = stepCells[j];
                             const key = cell.row + "_" + cell.col;
@@ -249,7 +245,6 @@ export default class GameController implements IGameCore {
                                 continue;
                             }
                             const visualTile = this.fieldView.getTile(cell.row, cell.col);
-
                             if (visualTile) {
                                 used[key] = true;
                                 stepTiles.push(visualTile);
@@ -264,160 +259,27 @@ export default class GameController implements IGameCore {
 
                 if (steps.length > 0) {
                     let index = 0;
-
                     const playNext = () => {
                         if (index >= steps.length) {
                             completeStep();
                             return;
                         }
-
                         const group = steps[index];
                         index++;
-
                         this.animationView.playGroupRemoveAnimation(group, playNext);
                     };
-
                     playNext();
                     return;
                 }
             }
 
             this.animationView.playGroupRemoveAnimation(tilesToPop, completeStep);
+        };
+
+        if (eventResult.preAnimation && this.animationView) {
+            eventResult.preAnimation(this.fieldView, this.animationView, applyAnimations);
         } else {
-            completeStep();
-        }
-        } else if (event.type === TileInputEventType.Booster) {
-            if (!event.boosterId) {
-                return;
-            }
-
-            const applyBooster = () => {
-                const chainData: { superTileChainSteps: { depth: number; cells: { row: number; col: number }[] }[]; depth?: number } = { superTileChainSteps: [] };
-                const boosterData = event.boosterData || {};
-                (boosterData as any).chainData = chainData;
-
-                const result = this.model.handleBooster(event.boosterId, boosterData);
-                if (!result) {
-                    this.isAnimating = false;
-                    if (event.onComplete) {
-                        event.onComplete();
-                    }
-                    return;
-                }
-
-            const tilesToPop: Tile[] = [];
-
-            for (let i = 0; i < result.removed.length; i++) {
-                const cell = result.removed[i];
-                const visualTile = this.fieldView.getTile(cell.row, cell.col);
-
-                if (visualTile) {
-                    tilesToPop.push(visualTile);
-                }
-            }
-
-            this.isAnimating = true;
-
-            const completeStep = () => {
-                this.fieldView.rebuild(this.model.getBoard());
-                this.updateMovesView();
-                this.updateScoreView();
-                this.isAnimating = false;
-                this.checkEndGame();
-                this.model.applyGravityAndRefill();
-                this.fieldView.rebuild(this.model.getBoard());
-                if (event.onComplete) {
-                    event.onComplete();
-                }
-            };
-
-            if (this.animationView && tilesToPop.length > 0) {
-                const hasChain = chainData.superTileChainSteps && chainData.superTileChainSteps.length > 0;
-
-                if (hasChain) {
-                    const steps: Tile[][] = [];
-                    const used: { [key: string]: boolean } = {};
-                    const depthsUsed: { [key: string]: boolean } = {};
-                    const depths: number[] = [];
-
-                    for (let i = 0; i < chainData.superTileChainSteps.length; i++) {
-                        const entry = chainData.superTileChainSteps[i];
-                        const depthKey = entry.depth.toString();
-                        if (!depthsUsed[depthKey]) {
-                            depthsUsed[depthKey] = true;
-                            depths.push(entry.depth);
-                        }
-                    }
-
-                    depths.sort((a, b) => a - b);
-
-                    for (let d = 0; d < depths.length; d++) {
-                        const depth = depths[d];
-                        const stepTiles: Tile[] = [];
-
-                        for (let i = 0; i < chainData.superTileChainSteps.length; i++) {
-                            const entry = chainData.superTileChainSteps[i];
-                            if (entry.depth !== depth) {
-                                continue;
-                            }
-
-                            const stepCells = entry.cells;
-
-                            for (let j = 0; j < stepCells.length; j++) {
-                                const cell = stepCells[j];
-                                const key = cell.row + "_" + cell.col;
-                                if (used[key]) {
-                                    continue;
-                                }
-                                const visualTile = this.fieldView.getTile(cell.row, cell.col);
-
-                                if (visualTile) {
-                                    used[key] = true;
-                                    stepTiles.push(visualTile);
-                                }
-                            }
-                        }
-
-                        if (stepTiles.length > 0) {
-                            steps.push(stepTiles);
-                        }
-                    }
-
-                    if (steps.length > 0) {
-                        let index = 0;
-
-                        const playNext = () => {
-                            if (index >= steps.length) {
-                                completeStep();
-                                return;
-                            }
-
-                            const group = steps[index];
-                            index++;
-
-                            this.animationView.playGroupRemoveAnimation(group, playNext);
-                        };
-
-                        playNext();
-                        return;
-                    }
-                }
-
-                this.animationView.playGroupRemoveAnimation(tilesToPop, completeStep);
-            } else {
-                completeStep();
-            }
-            };
-
-            const preAnimation = event.boosterData && typeof event.boosterData.preAnimation === "function" ? event.boosterData.preAnimation : null;
-
-            this.isAnimating = true;
-
-            if (preAnimation && this.animationView) {
-                preAnimation(this.fieldView, this.animationView, applyBooster);
-            } else {
-                applyBooster();
-            }
+            applyAnimations();
         }
     }
 

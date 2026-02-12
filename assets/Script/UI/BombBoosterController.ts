@@ -1,4 +1,4 @@
-import IGameCore from "../GameCore/IGameCore";
+import IGameController from "../GameCore/IGameController";
 import Tile from "../Tile";
 import BoosterButtonView from "./BoosterButtonView";
 
@@ -6,7 +6,7 @@ export default class BombBoosterController {
     private overlay: cc.Node = null;
     private hintLabel: cc.Node = null;
     private boostersPanel: cc.Node = null;
-    private gameCore: IGameCore = null;
+    private gameCore: IGameController = null;
     private bombSpriteFrame: cc.SpriteFrame = null;
     private bombButton: cc.Node = null;
     private buttonView: BoosterButtonView = null;
@@ -17,7 +17,7 @@ export default class BombBoosterController {
         overlay: cc.Node,
         hintLabel: cc.Node,
         boostersPanel: cc.Node,
-        gameCore: IGameCore,
+        gameCore: IGameController,
         bombSpriteFrame: cc.SpriteFrame,
         bombButton: cc.Node
     ): void {

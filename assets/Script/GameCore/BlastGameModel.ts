@@ -1,7 +1,8 @@
-import IGameModel, { BlastGameBoardCell, BlastGameStepResult } from "./IGameModel";
+import IGameModel, { BlastGameBoardCell, BlastGameStepResult, GameEventResult, GameAnimationStep } from "./IGameModel";
 import SupertileExtensionFactory from "./SupertileExtensionFactory";
 import BoosterExtensionFactory from "./BoosterExtensionFactory";
 import TileInputEventType from "./TileInputEventType";
+import TileInputEvent from "./TileInputEvent";
 
 export type { BlastGameBoardCell, BlastGameStepResult };
 
@@ -31,6 +32,61 @@ export default class BlastGameModel implements IGameModel {
 
     getSupportedEvents(): TileInputEventType[] {
         return [TileInputEventType.Tap, TileInputEventType.Booster];
+    }
+
+    handleEvent(event: TileInputEvent): GameEventResult | null {
+        if (this.remainingMoves <= 0) {
+            return null;
+        }
+
+        if (this.targetScore > 0 && this.score >= this.targetScore) {
+            return null;
+        }
+
+        if (event.type === TileInputEventType.Tap) {
+            const tile = event.tile;
+            if (!tile) {
+                return null;
+            }
+
+            const chainData: { superTileChainSteps: GameAnimationStep[]; depth?: number } = { superTileChainSteps: [] };
+            const result = this.handleTap(tile.row, tile.col, chainData);
+
+            if (!result) {
+                return null;
+            }
+
+            return {
+                stepResult: result,
+                animationSteps: chainData.superTileChainSteps || []
+            };
+        } else if (event.type === TileInputEventType.Booster) {
+            if (!event.boosterId) {
+                return null;
+            }
+
+            const chainData: { superTileChainSteps: GameAnimationStep[]; depth?: number } = { superTileChainSteps: [] };
+            const boosterData = event.boosterData || {};
+            (boosterData as any).chainData = chainData;
+
+            const result = this.handleBooster(event.boosterId, boosterData);
+
+            if (!result) {
+                return null;
+            }
+
+            const preAnimation = boosterData.preAnimation && typeof boosterData.preAnimation === "function" 
+                ? boosterData.preAnimation 
+                : undefined;
+
+            return {
+                stepResult: result,
+                animationSteps: chainData.superTileChainSteps || [],
+                preAnimation: preAnimation
+            };
+        }
+
+        return null;
     }
 
     setSuperTileGenerationCallback(callback: ((groupSize: number) => string | null) | null): void {
