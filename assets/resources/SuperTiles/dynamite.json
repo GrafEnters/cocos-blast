@@ -1,6 +1,6 @@
 {
   "id": "dynamite",
-  "icon": "SuperTiles/dynamite/icon_super_dynamite",
+  "icon": "Supertiles/dynamite/icon_super_dynamite",
   "generationThreshold": 9,
   "radius": 2
 }
