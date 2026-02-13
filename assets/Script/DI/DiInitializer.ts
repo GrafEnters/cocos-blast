@@ -2,15 +2,16 @@ const {ccclass, property, executeInEditMode} = cc._decorator;
 import DiContainer from "./DiContainer";
 import DiTokens from "./DiTokens";
 import MainGameConfig from "../Config/MainGameConfig";
-import MainLevelsConfig from "../Config/MainLevelConfig";
+import LevelsConfigList from "../Config/MainLevelConfig";
 import BoostersConfigList from "../Config/BoostersConfigList";
 import {BoosterConfig} from "../Config/BoosterConfig";
 import PlayerProfile from "../PlayerProfile";
 import TileColorConfig from "../Config/TileColorConfig";
-import SuperTilesConfig from "../Config/SuperTilesConfig";
+import SupertilesConfigList from "../Config/SupertilesConfigList";
 import IGameController from "../GameCore/IGameController";
 import GameController from "../GameCore/GameController";
 import GameModelFactory from "../GameCore/Models/GameModelFactory";
+import LevelConfig from "../Config/LevelConfig";
 import BlastAnimationView from "../GameCore/Animations/BlastAnimationView";
 import ShuffleNoMovesResolver from "../GameCore/ShuffleNoMovesResolver";
 import FieldView from "../GameCore/FieldView";
@@ -31,8 +32,8 @@ export default class DiInitializer extends cc.Component {
     @property(MainGameConfig)
     mainGameConfig: MainGameConfig = null;
 
-    @property(MainLevelsConfig)
-    mainLevelConfig: MainLevelsConfig = null;
+    @property(LevelsConfigList)
+    mainLevelConfig: LevelsConfigList = null;
 
     @property(TileColorConfig)
     tileColorConfig: TileColorConfig = null;
@@ -40,8 +41,8 @@ export default class DiInitializer extends cc.Component {
     @property(BoostersConfigList)
     boostersConfig: BoostersConfigList = null;
 
-    @property(SuperTilesConfig)
-    superTilesConfig: SuperTilesConfig = null;
+    @property(SupertilesConfigList)
+    superTilesConfig: SupertilesConfigList = null;
 
     @property(BoostersPanelView)
     boostersPanel: BoostersPanelView = null;
@@ -55,7 +56,7 @@ export default class DiInitializer extends cc.Component {
     async onLoad() {
         DiContainer.instance.register(DiTokens.DiInitializer, this);
 
-        await this.mainLevelConfig.loadLevels();
+        await this.mainLevelConfig.loadConfigs();
         this.initialize();
     }
 
@@ -69,10 +70,13 @@ export default class DiInitializer extends cc.Component {
         container.register(DiTokens.SuperTilesConfig, this.superTilesConfig);
         container.register(DiTokens.GameUI, this.gameUI);
 
+
+        await this.superTilesConfig.loadConfigs();
         const tileSpriteDictionary = this.initTilesDictionary();
         container.register(DiTokens.TileSpriteDictionary, tileSpriteDictionary);
 
         await this.initSupertiles(tileSpriteDictionary);
+
         await this.boostersConfig.loadConfigs();
         await this.buildAndStartGame();
     }
@@ -100,25 +104,31 @@ export default class DiInitializer extends cc.Component {
 
         this.gameUI.init();
 
-        const rows = this.mainLevelConfig ? this.mainLevelConfig.rows : 8;
-        const cols = this.mainLevelConfig ? this.mainLevelConfig.cols : 8;
-        const colors = this.mainLevelConfig ? this.mainLevelConfig.colors : ["red", "green", "blue", "yellow"];
+        let profile: PlayerProfile;
+        if (container.has(DiTokens.PlayerProfile)) {
+            profile = container.resolve<PlayerProfile>(DiTokens.PlayerProfile);
+        } else {
+            profile = new PlayerProfile();
+            container.register(DiTokens.PlayerProfile, profile);
+        }
+
+
+        const levelIndex = profile.getCurrentLevelIndex();
+        const levelConfig = this.mainLevelConfig.getLevelConfigByIndex(levelIndex);
+
         const tileSize = this.mainGameConfig ? this.mainGameConfig.tileSize : 64;
         const tileSpacing = this.mainGameConfig ? this.mainGameConfig.tileSpacing : 4;
-        const moves = this.mainLevelConfig ? this.mainLevelConfig.moves : 0;
-        const targetScore = this.mainLevelConfig ? this.mainLevelConfig.targetScore : 0;
-
-        const initialField = this.mainLevelConfig ? this.mainLevelConfig.initialField : null;
+        const initialField = levelConfig.initialField;
 
         const animationView = new BlastAnimationView();
 
         const noMovesResolver = this.enableShuffle ? new ShuffleNoMovesResolver(3) : null;
 
-        const model = gameModelFactory.create(rows, cols, colors, moves, targetScore, this.superTilesConfig, this.boostersConfig);
+        const model = gameModelFactory.create(levelConfig, this.superTilesConfig, this.boostersConfig);
 
         const tileSpriteDictionary = container.resolve<TileSpriteDictionary>(DiTokens.TileSpriteDictionary);
         const defaultTileSpriteFrame = tileSpriteDictionary ? tileSpriteDictionary.getDefaultSprite() : null;
-        const fieldView: IFieldView = new FieldView(rows, cols, colors, tileSize, tileSpacing, defaultTileSpriteFrame, this.tileColorConfig);
+        const fieldView: IFieldView = new FieldView(levelConfig.rows, levelConfig.cols, levelConfig.colors, tileSize, tileSpacing, defaultTileSpriteFrame, this.tileColorConfig);
 
         const gameController: IGameController = new GameController(model, this.gameUI, fieldView, animationView, noMovesResolver, initialField);
 
@@ -127,14 +137,6 @@ export default class DiInitializer extends cc.Component {
         const input: IInput = new TapInput(gameController);
 
         container.register(DiTokens.Input, input);
-
-        let profile: PlayerProfile;
-        if (container.has(DiTokens.PlayerProfile)) {
-            profile = container.resolve<PlayerProfile>(DiTokens.PlayerProfile);
-        } else {
-            profile = new PlayerProfile();
-            container.register(DiTokens.PlayerProfile, profile);
-        }
 
         profile.ensureBoostersInitialized(this.boostersConfig);
 
@@ -145,11 +147,10 @@ export default class DiInitializer extends cc.Component {
     };
 
     private async initSupertiles(tileSpriteDictionary: TileSpriteDictionary) {
-        await this.superTilesConfig.loadSuperTiles();
-        const configs = this.superTilesConfig.getSuperTileConfigs();
+        const configs = this.superTilesConfig.getConfigs();
         const loadPromises: Promise<void>[] = [];
         for (let i = 0; i < configs.length; i++) {
-            const cfg: any = configs[i];
+            const cfg = configs[i];
             const id = cfg.id.trim();
             const iconPath = cfg.icon.trim();
             const loadPromise = new Promise<void>((resolve) => {

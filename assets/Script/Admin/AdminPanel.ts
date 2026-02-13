@@ -2,13 +2,14 @@ const { ccclass, property } = cc._decorator;
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
 import IGameController from "../GameCore/IGameController";
-import MainLevelsConfig from "../Config/MainLevelConfig";
+import LevelsConfigList from "../Config/MainLevelConfig";
+import PlayerProfile from "../PlayerProfile";
 
 @ccclass
 export default class AdminPanel extends cc.Component {
 
-    @property(MainLevelsConfig)
-    mainLevelConfig: MainLevelsConfig = null;
+    @property(LevelsConfigList)
+    mainLevelConfig: LevelsConfigList = null;
 
     @property(cc.Node)
     buttonsGroup: cc.Node = null;
@@ -60,7 +61,7 @@ export default class AdminPanel extends cc.Component {
             return;
         }
 
-        const levels = this.mainLevelConfig.levels;
+        const levels = this.mainLevelConfig.getConfigs();
 
         if (!levels || levels.length === 0) {
             return;
@@ -100,7 +101,7 @@ export default class AdminPanel extends cc.Component {
             return;
         }
 
-        const levels = this.mainLevelConfig.levels;
+        const levels = this.mainLevelConfig.getConfigs();
 
         if (!levels || levels.length === 0) {
             return;
@@ -112,7 +113,11 @@ export default class AdminPanel extends cc.Component {
             return;
         }
 
-        this.mainLevelConfig.currentLevelIndex = targetIndex;
+        if (!DiContainer.instance.has(DiTokens.PlayerProfile)) {
+            return;
+        }
+        const profile = DiContainer.instance.resolve<PlayerProfile>(DiTokens.PlayerProfile);
+        profile.setCurrentLevelIndex(targetIndex);
 
         if (!DiContainer.instance.has(DiTokens.DiInitializer)) {
             return;

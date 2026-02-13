@@ -4,7 +4,7 @@ import property = cc._decorator.property;
 const {ccclass} = cc._decorator;
 
 @ccclass
-export default abstract class ConfigsList<T> extends cc.Component {
+export default abstract class ConfigList<T> extends cc.Component {
 
     @property
     path: string = "";

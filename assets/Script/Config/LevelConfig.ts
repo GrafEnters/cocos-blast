@@ -1,3 +1,15 @@
+export interface LevelConfigRaw {
+    id?: number;
+    name?: string;
+    description?: string;
+    rows: number;
+    cols: number;
+    colors: string[];
+    targetScore: number;
+    moves: number;
+    initialField?: unknown;
+}
+
 export default class LevelConfig {
     id?: number;
     name?: string;
@@ -9,8 +21,10 @@ export default class LevelConfig {
     moves: number;
     initialField: (string | null)[][] | null;
 
-    constructor(jsonAsset: cc.JsonAsset) {
-        const raw = (jsonAsset && jsonAsset.json) || {};
+    constructor(source: cc.JsonAsset | LevelConfigRaw) {
+        const raw: LevelConfigRaw = source && typeof (source as cc.JsonAsset).json !== "undefined"
+            ? ((source as cc.JsonAsset).json as LevelConfigRaw) || {}
+            : (source as LevelConfigRaw);
         if (typeof raw.rows !== "number" || typeof raw.cols !== "number" ||
             !Array.isArray(raw.colors) || raw.colors.length === 0 ||
             typeof raw.targetScore !== "number" || typeof raw.moves !== "number") {
@@ -27,7 +41,7 @@ export default class LevelConfig {
         this.initialField = this.parseInitialField(raw.initialField);
     }
 
-    private parseInitialField(raw: any): (string | null)[][] | null {
+    private parseInitialField(raw: unknown): (string | null)[][] | null {
         if (!raw || !Array.isArray(raw) || raw.length === 0) {
             return null;
         }

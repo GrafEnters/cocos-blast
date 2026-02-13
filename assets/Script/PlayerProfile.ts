@@ -2,8 +2,17 @@ import BoostersConfigList from "./Config/BoostersConfigList";
 
 export default class PlayerProfile {
 
+    private currentLevelIndex: number = 0;
     private boosterCounts: Map<string, number> = new Map();
     private boostersInitialized: boolean = false;
+
+    getCurrentLevelIndex(): number {
+        return this.currentLevelIndex;
+    }
+
+    setCurrentLevelIndex(index: number): void {
+        this.currentLevelIndex = index >= 0 ? index : 0;
+    }
 
     ensureBoostersInitialized(config: BoostersConfigList): void {
         if (this.boostersInitialized || !config) {

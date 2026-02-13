@@ -1,5 +1,6 @@
 const { ccclass, property } = cc._decorator;
-import MainLevelsConfig from "../Config/MainLevelConfig";
+import LevelsConfigList from "../Config/MainLevelConfig";
+import PlayerProfile from "../PlayerProfile";
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
 
@@ -12,8 +13,8 @@ export default class EndGamePanel extends cc.Component {
     @property(cc.Node)
     loseState: cc.Node = null;
 
-    @property(MainLevelsConfig)
-    mainLevelConfig: MainLevelsConfig = null;
+    @property(LevelsConfigList)
+    mainLevelConfig: LevelsConfigList = null;
 
     showWin() {
         this.node.active = true;
@@ -52,16 +53,20 @@ export default class EndGamePanel extends cc.Component {
             return;
         }
 
-        const levels = this.mainLevelConfig.levels;
+        if (!DiContainer.instance.has(DiTokens.PlayerProfile)) {
+            return;
+        }
+
+        const levels = this.mainLevelConfig.getConfigs();
 
         if (!levels || levels.length === 0) {
             return;
         }
 
-        const currentIndex = this.mainLevelConfig.currentLevelIndex;
+        const profile = DiContainer.instance.resolve<PlayerProfile>(DiTokens.PlayerProfile);
+        const currentIndex = profile.getCurrentLevelIndex();
         const nextIndex = (currentIndex + 1) % levels.length;
-
-        this.mainLevelConfig.currentLevelIndex = nextIndex;
+        profile.setCurrentLevelIndex(nextIndex);
         this.restartWithCurrentLevel();
     }
 
