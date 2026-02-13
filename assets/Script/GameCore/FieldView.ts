@@ -100,8 +100,23 @@ export default class FieldView implements IFieldView {
     }
 
     playShuffleAnimation(newBoard: BlastGameBoardCell[][], onComplete: () => void): void {
-        const tilesList: Tile[] = [];
+        const tilesList = this.collectTilesForShuffle();
+        if (tilesList.length === 0) {
+            onComplete();
+            return;
+        }
 
+        const delayBeforeShuffle = 0.25;
+        setTimeout(() => {
+            this.animateTilesToCenter(tilesList, () => {
+                this.updateTilesAfterShuffle(tilesList, newBoard);
+                this.animateTilesFromCenter(tilesList, onComplete);
+            });
+        }, delayBeforeShuffle * 1000);
+    }
+
+    private collectTilesForShuffle(): Tile[] {
+        const tilesList: Tile[] = [];
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.cols; col++) {
                 const tile = this.tiles[row][col];
@@ -110,19 +125,21 @@ export default class FieldView implements IFieldView {
                 }
             }
         }
+        return tilesList;
+    }
 
-        if (tilesList.length === 0) {
-            onComplete();
-            return;
-        }
-
+    private animateTilesToCenter(tilesList: Tile[], onComplete: () => void): void {
         const center = this.getCenterPosition();
-        const delayBeforeShuffle = 0.25;
         const flyInDuration = 0.25;
-        const flyOutDuration = 0.25;
+        let completedCount = 0;
 
-        let completed = 0;
-        const startFlyIn = () => {
+        const onFlyInDone = () => {
+            completedCount++;
+            if (completedCount >= tilesList.length) {
+                onComplete();
+            }
+        };
+
         for (let i = 0; i < tilesList.length; i++) {
             const tile = tilesList[i];
             cc.tween(tile.node)
@@ -130,66 +147,63 @@ export default class FieldView implements IFieldView {
                 .call(onFlyInDone)
                 .start();
         }
-        };
+    }
 
-        const onFlyInDone = () => {
-            completed++;
-            if (completed < tilesList.length) {
-                return;
+    private updateTilesAfterShuffle(tilesList: Tile[], newBoard: BlastGameBoardCell[][]): void {
+        for (let i = 0; i < tilesList.length; i++) {
+            const tile = tilesList[i];
+            const row = Math.floor(i / this.cols);
+            const col = i % this.cols;
+            const cell = newBoard[row][col];
+            if (cell === null) {
+                continue;
             }
+            const colorKey = this.normalizeKey(cell);
+            tile.row = row;
+            tile.col = col;
+            tile.tileType = colorKey;
+            this.updateTileAppearance(tile, colorKey);
+        }
 
-            for (let i = 0; i < tilesList.length; i++) {
-                const tile = tilesList[i];
-                const row = Math.floor(i / this.cols);
-                const col = i % this.cols;
-                const cell = newBoard[row][col];
-                if (cell === null) {
-                    continue;
-                }
-                const colorKey: string = this.normalizeKey(cell);
-                tile.row = row;
-                tile.col = col;
-                tile.tileType = colorKey;
-                this.updateTileAppearance(tile, colorKey);
+        const newTiles: (Tile | null)[][] = [];
+        for (let r = 0; r < this.rows; r++) {
+            newTiles[r] = [];
+            for (let c = 0; c < this.cols; c++) {
+                newTiles[r][c] = null;
             }
+        }
+        for (let i = 0; i < tilesList.length; i++) {
+            const tile = tilesList[i];
+            newTiles[tile.row][tile.col] = tile;
+        }
+        this.tiles = newTiles;
 
-            const newTiles: (Tile | null)[][] = [];
-            for (let r = 0; r < this.rows; r++) {
-                newTiles[r] = [];
-                for (let c = 0; c < this.cols; c++) {
-                    newTiles[r][c] = null;
-                }
-            }
-            for (let i = 0; i < tilesList.length; i++) {
-                const tile = tilesList[i];
-                newTiles[tile.row][tile.col] = tile;
-            }
-            this.tiles = newTiles;
+        const center = this.getCenterPosition();
+        for (let i = 0; i < tilesList.length; i++) {
+            const tile = tilesList[i];
+            tile.node.setPosition(center);
+        }
+    }
 
-            for (let i = 0; i < tilesList.length; i++) {
-                const tile = tilesList[i];
-                tile.node.setPosition(center);
-            }
+    private animateTilesFromCenter(tilesList: Tile[], onComplete: () => void): void {
+        const flyOutDuration = 0.25;
+        let completedCount = 0;
 
-            completed = 0;
-            const onFlyOutDone = () => {
-                completed++;
-                if (completed >= tilesList.length) {
-                    onComplete();
-                }
-            };
-
-            for (let i = 0; i < tilesList.length; i++) {
-                const tile = tilesList[i];
-                const targetPos = this.getPositionForCell(tile.row, tile.col);
-                cc.tween(tile.node)
-                    .to(flyOutDuration, { position: targetPos })
-                    .call(onFlyOutDone)
-                    .start();
+        const onFlyOutDone = () => {
+            completedCount++;
+            if (completedCount >= tilesList.length) {
+                onComplete();
             }
         };
 
-        setTimeout(startFlyIn, delayBeforeShuffle * 1000);
+        for (let i = 0; i < tilesList.length; i++) {
+            const tile = tilesList[i];
+            const targetPos = this.getPositionForCell(tile.row, tile.col);
+            cc.tween(tile.node)
+                .to(flyOutDuration, { position: targetPos })
+                .call(onFlyOutDone)
+                .start();
+        }
     }
 
     private getCenterPosition(): cc.Vec3 {

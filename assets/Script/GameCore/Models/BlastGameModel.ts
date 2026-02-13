@@ -207,78 +207,80 @@ export default class BlastGameModel implements IGameModel {
     }
 
     handleTap(row: number, col: number, data?: SuperTileData): BlastGameStepResult | null {
-        if (this.remainingMoves <= 0) {
-            return null;
-        }
-
-        if (this.targetScore > 0 && this.score >= this.targetScore) {
-            return null;
-        }
-
-        if (!this.isInside(row, col)) {
+        if (!this.validateTapInput(row, col)) {
             return null;
         }
 
         const cellValue = this.board[row][col];
-
         if (cellValue === null) {
             return null;
         }
 
         if (this.isSuperTile(row, col)) {
-            const superTileId = this.getSuperTileId(row, col);
-            if (!superTileId) {
-                return null;
-            }
-
-            const chainData: SuperTileData = data || { superTileChainSteps: [] };
-            if (!Array.isArray(chainData.superTileQueue)) {
-                chainData.superTileQueue = [];
-            }
-            chainData.superTileQueue.push({ id: superTileId, row, col, depth: 0 });
-            chainData.depth = 0;
-
-            const internalResult = this.processSuperTileQueueInternal(chainData);
-            if (!internalResult) {
-                return null;
-            }
-
-            this.decreaseMoves();
-
-            return {
-                removed: internalResult.removed,
-                score: this.score,
-                targetScore: this.targetScore,
-                remainingMoves: this.remainingMoves,
-                scoreDelta: internalResult.scoreDelta,
-            };
+            return this.handleSuperTileTap(row, col, data);
         }
 
+        return this.handleColorTileTap(row, col, cellValue);
+    }
+
+    private validateTapInput(row: number, col: number): boolean {
+        if (this.remainingMoves <= 0) {
+            return false;
+        }
+
+        if (this.targetScore > 0 && this.score >= this.targetScore) {
+            return false;
+        }
+
+        if (!this.isInside(row, col)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private handleSuperTileTap(row: number, col: number, data?: SuperTileData): BlastGameStepResult | null {
+        const superTileId = this.getSuperTileId(row, col);
+        if (!superTileId) {
+            return null;
+        }
+
+        const chainData: SuperTileData = data || { superTileChainSteps: [] };
+        if (!Array.isArray(chainData.superTileQueue)) {
+            chainData.superTileQueue = [];
+        }
+        chainData.superTileQueue.push({ id: superTileId, row, col, depth: 0 });
+        chainData.depth = 0;
+
+        const internalResult = this.processSuperTileQueueInternal(chainData);
+        if (!internalResult) {
+            return null;
+        }
+
+        this.decreaseMoves();
+
+        return {
+            removed: internalResult.removed,
+            score: this.score,
+            targetScore: this.targetScore,
+            remainingMoves: this.remainingMoves,
+            scoreDelta: internalResult.scoreDelta,
+        };
+    }
+
+    private handleColorTileTap(row: number, col: number, cellValue: string): BlastGameStepResult | null {
         if (!this.isColor(cellValue)) {
             return null;
         }
 
         const group = this.collectGroup(row, col, cellValue);
-
         if (group.length < 2) {
             return null;
         }
 
-        const removed: { row: number; col: number }[] = [];
-
-        for (let i = 0; i < group.length; i++) {
-            const cell = group[i];
-            removed.push({ row: cell.row, col: cell.col });
-            this.board[cell.row][cell.col] = null;
-        }
-
-        if (this.getSuperTileTypeForSize) {
-            const superTileType = this.getSuperTileTypeForSize(group.length);
-            if (superTileType && this.isInside(row, col)) {
-                this.board[row][col] = superTileType;
-            }
-        }
-
+        const removed = this.removeGroupCells(group);
+        this.createSuperTileIfNeeded(row, col, group.length);
+        
         const scoreDelta = this.calculateGroupScore(group.length);
         this.applyScore(scoreDelta);
         this.decreaseMoves();
@@ -290,6 +292,27 @@ export default class BlastGameModel implements IGameModel {
             remainingMoves: this.remainingMoves,
             scoreDelta: scoreDelta,
         };
+    }
+
+    private removeGroupCells(group: { row: number; col: number }[]): { row: number; col: number }[] {
+        const removed: { row: number; col: number }[] = [];
+        for (let i = 0; i < group.length; i++) {
+            const cell = group[i];
+            removed.push({ row: cell.row, col: cell.col });
+            this.board[cell.row][cell.col] = null;
+        }
+        return removed;
+    }
+
+    private createSuperTileIfNeeded(row: number, col: number, groupSize: number): void {
+        if (!this.getSuperTileTypeForSize) {
+            return;
+        }
+
+        const superTileType = this.getSuperTileTypeForSize(groupSize);
+        if (superTileType && this.isInside(row, col)) {
+            this.board[row][col] = superTileType;
+        }
     }
 
 

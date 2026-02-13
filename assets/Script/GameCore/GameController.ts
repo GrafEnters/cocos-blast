@@ -95,14 +95,9 @@ export default class GameController implements IGameController {
 
         try {
             await this.animationView.playEventAnimations(eventResult, this.fieldView);
-
-            this.fieldView.rebuild(this.model.getBoard());
-            this.updateMovesView();
-            this.updateScoreView();
-            this.model.applyGravityAndRefill();
-            this.fieldView.rebuild(this.model.getBoard());
+            this.updateFieldAfterAnimation();
             this.isAnimating = false;
-            const wasShuffleStarted = this.checkEndGame();
+            this.checkEndGame();
             if (onComplete) {
                 onComplete();
             }
@@ -110,6 +105,18 @@ export default class GameController implements IGameController {
             this.isAnimating = false;
             throw error;
         }
+    }
+
+    private updateFieldAfterAnimation(): void {
+        this.fieldView.rebuild(this.model.getBoard());
+        this.updateUI();
+        this.model.applyGravityAndRefill();
+        this.fieldView.rebuild(this.model.getBoard());
+    }
+
+    private updateUI(): void {
+        this.updateMovesView();
+        this.updateScoreView();
     }
 
     getRemainingMoves(): number {
@@ -150,15 +157,7 @@ export default class GameController implements IGameController {
     }
 
     useBooster(boosterId: string, data?: BoosterData, onComplete?: () => void): void {
-        let tile: Tile | null = null;
-        if (data && typeof data === "object" && "row" in data && typeof data.row === "number" && "col" in data && typeof data.col === "number") {
-            tile = this.fieldView.getTile(data.row, data.col);
-        }
-
-        if (!tile) {
-            tile = {row: -1, col: -1, node: null};
-        }
-
+        const tile = this.getTileFromBoosterData(data);
         const event: TileInputEvent = {
             type: TileInputEventType.Booster,
             tile: tile,
@@ -167,6 +166,16 @@ export default class GameController implements IGameController {
             onComplete: onComplete
         };
         this.handleEvent(event);
+    }
+
+    private getTileFromBoosterData(data?: BoosterData): Tile {
+        if (data && typeof data === "object" && "row" in data && typeof data.row === "number" && "col" in data && typeof data.col === "number") {
+            const tile = this.fieldView.getTile(data.row, data.col);
+            if (tile) {
+                return tile;
+            }
+        }
+        return {row: -1, col: -1, node: null};
     }
 
 
@@ -252,8 +261,7 @@ export default class GameController implements IGameController {
             this.fieldView.playShuffleAnimation(this.model.getBoard(), () => {
                 this.model.applyGravityAndRefill();
                 this.fieldView.rebuild(this.model.getBoard());
-                this.updateMovesView();
-                this.updateScoreView();
+                this.updateUI();
                 this.isAnimating = false;
                 onComplete();
             });

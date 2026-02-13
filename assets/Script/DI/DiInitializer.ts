@@ -20,6 +20,8 @@ import BoostersPanelView from "../UI/BoostersPanelView";
 import BoostersControllersFactory from "../GameCore/Boosters/BoostersControllersFactory";
 import TileSpriteDictionary from "../GameCore/TileSpriteDictionary";
 import GameUI from "../UI/GameUI";
+import { LevelConfig } from "../Config/LevelConfig";
+import { MainGameConfig } from "../Config/MainGameConfigType";
 
 @ccclass
 @executeInEditMode
@@ -79,14 +81,17 @@ export default class DiInitializer extends cc.Component {
         await this.buildAndStartGame();
     }
 
-    private initTilesDictionary() {
-        const tileSpriteDictionary = new TileSpriteDictionary(this.tileColorConfig ? this.tileColorConfig.defaultSprite : null);
+    private initTilesDictionary(): TileSpriteDictionary {
+        const defaultSprite = this.tileColorConfig ? this.tileColorConfig.defaultSprite : null;
+        const tileSpriteDictionary = new TileSpriteDictionary(defaultSprite);
 
         const keys = this.tileColorConfig.keys || [];
         const sprites = this.tileColorConfig.sprites || [];
-        for (let i = 0; i < keys.length; i++) {
+        const maxLength = Math.min(keys.length, sprites.length);
+
+        for (let i = 0; i < maxLength; i++) {
             const key = keys[i];
-            const sprite = i < sprites.length ? sprites[i] : null;
+            const sprite = sprites[i];
             if (key && sprite) {
                 tileSpriteDictionary.register(key, sprite);
             }
@@ -95,52 +100,72 @@ export default class DiInitializer extends cc.Component {
         return tileSpriteDictionary;
     }
 
-    private async buildAndStartGame() {
+    private async buildAndStartGame(): Promise<void> {
         const container = DiContainer.instance;
-        const gameModelFactory = new GameModelFactory(container);
-        container.register(DiTokens.GameModelFactory, gameModelFactory);
-
+        this.registerGameModelFactory(container);
         this.gameUI.init();
 
-        let profile: PlayerProfile;
-        if (container.has(DiTokens.PlayerProfile)) {
-            profile = container.resolve<PlayerProfile>(DiTokens.PlayerProfile);
-        } else {
-            profile = new PlayerProfile();
-            container.register(DiTokens.PlayerProfile, profile);
+        const profile = this.getOrCreatePlayerProfile(container);
+        const levelConfig = this.getLevelConfig(profile);
+        if (!levelConfig) {
+            throw new Error("LevelConfig not found");
         }
-
-
-        const levelIndex = profile.getCurrentLevelIndex();
-        const levelConfig = this.levelsConfigList.getLevelConfigByIndex(levelIndex);
 
         const mainGameConfig = this.fieldViewConfigComponent.getMainGameConfig();
         const initialField = levelConfig.initialField;
 
-        const animationView = new BlastAnimationView();
-
-        const noMovesResolver = this.enableShuffle ? new ShuffleNoMovesResolver(3) : null;
-
-        const model = gameModelFactory.create(levelConfig, this.superTilesConfig, this.boostersConfig);
-
-        const tileSpriteDictionary = container.resolve<TileSpriteDictionary>(DiTokens.TileSpriteDictionary);
-        const fieldView: IFieldView = new FieldView(levelConfig.rows, levelConfig.cols, mainGameConfig, tileSpriteDictionary);
-
-        const gameController: IGameController = new GameController(model, this.gameUI, fieldView, animationView, noMovesResolver, initialField);
+        const model = this.createGameModel(container, levelConfig);
+        const fieldView = this.createFieldView(container, levelConfig, mainGameConfig);
+        const gameController = this.createGameController(model, fieldView, initialField);
 
         container.register(DiTokens.GameController, gameController);
-
-        const input: IInput = new TapInput(gameController);
-
-        container.register(DiTokens.Input, input);
+        this.setupInput(container, gameController);
 
         profile.ensureBoostersInitialized(this.boostersConfig);
-
         gameController.init();
-        input.init();
-
         this.initializeBoosters(gameController);
-    };
+    }
+
+    private registerGameModelFactory(container: DiContainer): void {
+        const gameModelFactory = new GameModelFactory(container);
+        container.register(DiTokens.GameModelFactory, gameModelFactory);
+    }
+
+    private getOrCreatePlayerProfile(container: DiContainer): PlayerProfile {
+        if (container.has(DiTokens.PlayerProfile)) {
+            return container.resolve<PlayerProfile>(DiTokens.PlayerProfile);
+        }
+        const profile = new PlayerProfile();
+        container.register(DiTokens.PlayerProfile, profile);
+        return profile;
+    }
+
+    private getLevelConfig(profile: PlayerProfile): LevelConfig | null {
+        const levelIndex = profile.getCurrentLevelIndex();
+        return this.levelsConfigList.getLevelConfigByIndex(levelIndex);
+    }
+
+    private createGameModel(container: DiContainer, levelConfig: LevelConfig): IGameModel {
+        const gameModelFactory = container.resolve<GameModelFactory>(DiTokens.GameModelFactory);
+        return gameModelFactory.create(levelConfig, this.superTilesConfig, this.boostersConfig);
+    }
+
+    private createFieldView(container: DiContainer, levelConfig: LevelConfig, mainGameConfig: MainGameConfig): IFieldView {
+        const tileSpriteDictionary = container.resolve<TileSpriteDictionary>(DiTokens.TileSpriteDictionary);
+        return new FieldView(levelConfig.rows, levelConfig.cols, mainGameConfig, tileSpriteDictionary);
+    }
+
+    private createGameController(model: IGameModel, fieldView: IFieldView, initialField: (string | null)[][] | null): IGameController {
+        const animationView = new BlastAnimationView();
+        const noMovesResolver = this.enableShuffle ? new ShuffleNoMovesResolver(3) : null;
+        return new GameController(model, this.gameUI, fieldView, animationView, noMovesResolver, initialField);
+    }
+
+    private setupInput(container: DiContainer, gameController: IGameController): void {
+        const input: IInput = new TapInput(gameController);
+        container.register(DiTokens.Input, input);
+        input.init();
+    }
 
     private async initSupertiles(tileSpriteDictionary: TileSpriteDictionary) {
         const configs = this.superTilesConfig.getConfigs();

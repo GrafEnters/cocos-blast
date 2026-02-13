@@ -63,85 +63,108 @@ export default class BlastAnimationView implements IAnimationView {
     }
 
     async playEventAnimations(eventResult: GameEventResult, fieldView: IFieldView): Promise<void> {
-        const result = eventResult.stepResult;
-        const animationSteps = eventResult.animationSteps || [];
+        if (eventResult.preAnimation) {
+            await eventResult.preAnimation(fieldView, this);
+        }
 
+        const tilesToPop = this.collectTilesToPop(eventResult.stepResult.removed, fieldView);
+        if (tilesToPop.length === 0) {
+            return;
+        }
+
+        const animationSteps = eventResult.animationSteps || [];
+        if (animationSteps.length > 0) {
+            const groupedSteps = this.groupAnimationStepsByDepth(animationSteps, fieldView);
+            if (groupedSteps.length > 0) {
+                await this.playGroupedAnimations(groupedSteps);
+                return;
+            }
+        }
+
+        await this.playGroupRemoveAnimation(tilesToPop);
+    }
+
+    private collectTilesToPop(removedCells: { row: number; col: number }[], fieldView: IFieldView): Tile[] {
         const tilesToPop: Tile[] = [];
-        for (let i = 0; i < result.removed.length; i++) {
-            const cell = result.removed[i];
+        for (let i = 0; i < removedCells.length; i++) {
+            const cell = removedCells[i];
             const visualTile = fieldView.getTile(cell.row, cell.col);
             if (visualTile) {
                 tilesToPop.push(visualTile);
             }
         }
+        return tilesToPop;
+    }
 
-        const applyAnimations = async () => {
-            if (tilesToPop.length === 0) {
-                return;
+    private groupAnimationStepsByDepth(animationSteps: GameAnimationStep[], fieldView: IFieldView): Tile[][] {
+        const steps: Tile[][] = [];
+        const used: { [key: string]: boolean } = {};
+        const depths = this.extractUniqueDepths(animationSteps);
+
+        for (let d = 0; d < depths.length; d++) {
+            const depth = depths[d];
+            const stepTiles = this.collectTilesForDepth(animationSteps, depth, fieldView, used);
+            if (stepTiles.length > 0) {
+                steps.push(stepTiles);
             }
-
-            if (animationSteps.length > 0) {
-                const steps: Tile[][] = [];
-                const used: { [key: string]: boolean } = {};
-                const depthsUsed: { [key: string]: boolean } = {};
-                const depths: number[] = [];
-
-                for (let i = 0; i < animationSteps.length; i++) {
-                    const entry = animationSteps[i];
-                    const depthKey = entry.depth.toString();
-                    if (!depthsUsed[depthKey]) {
-                        depthsUsed[depthKey] = true;
-                        depths.push(entry.depth);
-                    }
-                }
-
-                depths.sort((a, b) => a - b);
-
-                for (let d = 0; d < depths.length; d++) {
-                    const depth = depths[d];
-                    const stepTiles: Tile[] = [];
-
-                    for (let i = 0; i < animationSteps.length; i++) {
-                        const entry = animationSteps[i];
-                        if (entry.depth !== depth) {
-                            continue;
-                        }
-
-                        const stepCells = entry.cells;
-                        for (let j = 0; j < stepCells.length; j++) {
-                            const cell = stepCells[j];
-                            const key = cell.row + "_" + cell.col;
-                            if (used[key]) {
-                                continue;
-                            }
-                            const visualTile = fieldView.getTile(cell.row, cell.col);
-                            if (visualTile) {
-                                used[key] = true;
-                                stepTiles.push(visualTile);
-                            }
-                        }
-                    }
-
-                    if (stepTiles.length > 0) {
-                        steps.push(stepTiles);
-                    }
-                }
-
-                if (steps.length > 0) {
-                    for (let i = 0; i < steps.length; i++) {
-                        await this.playGroupRemoveAnimation(steps[i]);
-                    }
-                    return;
-                }
-            }
-
-            await this.playGroupRemoveAnimation(tilesToPop);
-        };
-
-        if (eventResult.preAnimation) {
-            await eventResult.preAnimation(fieldView, this);
         }
-        await applyAnimations();
+
+        return steps;
+    }
+
+    private extractUniqueDepths(animationSteps: GameAnimationStep[]): number[] {
+        const depthsUsed: { [key: string]: boolean } = {};
+        const depths: number[] = [];
+
+        for (let i = 0; i < animationSteps.length; i++) {
+            const entry = animationSteps[i];
+            const depthKey = entry.depth.toString();
+            if (!depthsUsed[depthKey]) {
+                depthsUsed[depthKey] = true;
+                depths.push(entry.depth);
+            }
+        }
+
+        depths.sort((a, b) => a - b);
+        return depths;
+    }
+
+    private collectTilesForDepth(
+        animationSteps: GameAnimationStep[],
+        depth: number,
+        fieldView: IFieldView,
+        used: { [key: string]: boolean }
+    ): Tile[] {
+        const stepTiles: Tile[] = [];
+
+        for (let i = 0; i < animationSteps.length; i++) {
+            const entry = animationSteps[i];
+            if (entry.depth !== depth) {
+                continue;
+            }
+
+            const stepCells = entry.cells;
+            for (let j = 0; j < stepCells.length; j++) {
+                const cell = stepCells[j];
+                const key = cell.row + "_" + cell.col;
+                if (used[key]) {
+                    continue;
+                }
+                const visualTile = fieldView.getTile(cell.row, cell.col);
+                if (visualTile) {
+                    used[key] = true;
+                    stepTiles.push(visualTile);
+                }
+            }
+        }
+
+        return stepTiles;
+    }
+
+    private async playGroupedAnimations(groupedSteps: Tile[][]): Promise<void> {
+        for (let i = 0; i < groupedSteps.length; i++) {
+            await this.playGroupRemoveAnimation(groupedSteps[i]);
+        }
     }
 }
 
