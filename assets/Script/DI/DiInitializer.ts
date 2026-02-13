@@ -124,8 +124,7 @@ export default class DiInitializer extends cc.Component {
         const model = gameModelFactory.create(levelConfig, this.superTilesConfig, this.boostersConfig);
 
         const tileSpriteDictionary = container.resolve<TileSpriteDictionary>(DiTokens.TileSpriteDictionary);
-        const defaultTileSpriteFrame = tileSpriteDictionary ? tileSpriteDictionary.getDefaultSprite() : null;
-        const fieldView: IFieldView = new FieldView(levelConfig.rows, levelConfig.cols, levelConfig.colors, mainGameConfig, defaultTileSpriteFrame, this.tileColorConfig);
+        const fieldView: IFieldView = new FieldView(levelConfig.rows, levelConfig.cols, mainGameConfig, tileSpriteDictionary);
 
         const gameController: IGameController = new GameController(model, this.gameUI, fieldView, animationView, noMovesResolver, initialField);
 

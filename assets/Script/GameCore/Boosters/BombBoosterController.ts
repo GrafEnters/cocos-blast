@@ -123,9 +123,8 @@ export default class BombBoosterController implements IBoosterController {
                 if (!centerTile || !centerTile.node) {
                     return;
                 }
-                if (fieldView.setTileBombAppearance && this.bombSpriteFrame) {
-                    fieldView.setTileBombAppearance(centerTile, this.bombSpriteFrame);
-                }
+                fieldView.setTileSprite(centerTile, this.bombSpriteFrame);
+
                 if (!animationView || !animationView.playBombBurnAnimation || !this.bombSpriteFrame) {
                     return;
                 }
