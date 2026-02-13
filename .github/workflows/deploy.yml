@@ -28,13 +28,29 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Check if build directory exists
+      - name: Check build directory structure
         id: check_build
         run: |
+          echo "Checking build directory..."
           if [ -d "build/web-mobile" ]; then
+            echo "✓ build/web-mobile directory exists"
             echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Listing files in build/web-mobile:"
+            ls -la build/web-mobile/ || echo "Directory is empty or inaccessible"
+            if [ -f "build/web-mobile/index.html" ]; then
+              echo "✓ index.html found"
+              echo "has_index=true" >> $GITHUB_OUTPUT
+            else
+              echo "✗ index.html NOT found"
+              echo "has_index=false" >> $GITHUB_OUTPUT
+              echo "Files in build/web-mobile:"
+              find build/web-mobile -type f -name "*.html" | head -10
+            fi
           else
+            echo "✗ build/web-mobile directory does NOT exist"
             echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Checking build directory structure:"
+            ls -la build/ 2>/dev/null || echo "build directory does not exist"
           fi
 
       - name: Upload artifact
@@ -47,8 +63,7 @@ jobs:
         if: steps.check_build.outputs.exists == 'false'
         run: |
           mkdir -p placeholder
-          echo "<!DOCTYPE html><html><head><title>Cocos Blast</title></head><body><h1>Build not found</h1><p>Please build the project locally and commit the build/web-mobile directory.</p></body></html>" > placeholder/index.html
-        continue-on-error: true
+          echo "<!DOCTYPE html><html><head><title>Cocos Blast</title><meta charset='utf-8'></head><body><h1>Build not found</h1><p>Please build the project locally in Cocos Creator and commit the build/web-mobile directory.</p><p>Steps:</p><ol><li>Open project in Cocos Creator 2.4.x</li><li>Project → Build → Web Mobile</li><li>Commit and push the build/web-mobile folder</li></ol></body></html>" > placeholder/index.html
 
       - name: Upload placeholder artifact
         if: steps.check_build.outputs.exists == 'false'
