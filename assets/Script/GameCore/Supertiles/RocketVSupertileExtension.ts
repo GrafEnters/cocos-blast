@@ -52,8 +52,8 @@ export default class RocketVSupertileExtension implements ISupertileExtension {
             return null;
         }
 
-        processSuperTileQueue(model, chainData, tracker);
         addDirectStepToChain(chainData, directStep);
+        processSuperTileQueue(model, chainData, tracker);
         calculateAndApplyScore(model, directRemovedCount);
 
         return createBlastGameStepResult(model, tracker.removed, scoreBefore);

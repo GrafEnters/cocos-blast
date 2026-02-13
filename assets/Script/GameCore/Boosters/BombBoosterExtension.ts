@@ -70,13 +70,12 @@ export default class BombBoosterExtension implements IBoosterExtension {
             }
         }
 
-        processSuperTileQueue(model, superTileChainData, tracker);
-
         if (tracker.removed.length === 0) {
             return null;
         }
 
         addDirectStepToChain(superTileChainData, directStep);
+        processSuperTileQueue(model, superTileChainData, tracker);
         calculateAndApplyScore(model, directRemovedCount);
 
         return createBlastGameStepResult(model, tracker.removed, scoreBefore);

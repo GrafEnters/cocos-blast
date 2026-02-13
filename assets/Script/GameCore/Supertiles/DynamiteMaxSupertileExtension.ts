@@ -50,8 +50,8 @@ export default class DynamiteMaxSupertileExtension implements ISupertileExtensio
             return null;
         }
 
-        processSuperTileQueue(model, chainData, tracker);
         addDirectStepToChain(chainData, directStep);
+        processSuperTileQueue(model, chainData, tracker);
         calculateAndApplyScore(model, directRemovedCount);
 
         return createBlastGameStepResult(model, tracker.removed, scoreBefore);
