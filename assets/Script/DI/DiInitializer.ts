@@ -3,7 +3,7 @@ import DiContainer from "./DiContainer";
 import DiTokens from "./DiTokens";
 import MainGameConfig from "../Config/MainGameConfig";
 import MainLevelsConfig from "../Config/MainLevelConfig";
-import BoostersConfig from "../Config/BoostersConfig";
+import BoostersConfigList from "../Config/BoostersConfigList";
 import {BoosterConfig} from "../Config/BoosterConfig";
 import PlayerProfile from "../PlayerProfile";
 import TileColorConfig from "../Config/TileColorConfig";
@@ -37,8 +37,8 @@ export default class DiInitializer extends cc.Component {
     @property(TileColorConfig)
     tileColorConfig: TileColorConfig = null;
 
-    @property(BoostersConfig)
-    boostersConfig: BoostersConfig = null;
+    @property(BoostersConfigList)
+    boostersConfig: BoostersConfigList = null;
 
     @property(SuperTilesConfig)
     superTilesConfig: SuperTilesConfig = null;
@@ -55,9 +55,7 @@ export default class DiInitializer extends cc.Component {
     async onLoad() {
         DiContainer.instance.register(DiTokens.DiInitializer, this);
 
-        if (this.mainLevelConfig && typeof this.mainLevelConfig.loadLevels === "function") {
-            await this.mainLevelConfig.loadLevels();
-        }
+        await this.mainLevelConfig.loadLevels();
         this.initialize();
     }
 
@@ -75,7 +73,7 @@ export default class DiInitializer extends cc.Component {
         container.register(DiTokens.TileSpriteDictionary, tileSpriteDictionary);
 
         await this.initSupertiles(tileSpriteDictionary);
-        await this.boostersConfig.loadBoosters();
+        await this.boostersConfig.loadConfigs();
         await this.buildAndStartGame();
     }
 
@@ -110,8 +108,7 @@ export default class DiInitializer extends cc.Component {
         const moves = this.mainLevelConfig ? this.mainLevelConfig.moves : 0;
         const targetScore = this.mainLevelConfig ? this.mainLevelConfig.targetScore : 0;
 
-        const rawField = this.mainLevelConfig ? this.mainLevelConfig.initialField : null;
-        let initialField = this.parseInitialField(rawField);
+        const initialField = this.mainLevelConfig ? this.mainLevelConfig.initialField : null;
 
         const animationView = new BlastAnimationView();
 
@@ -146,35 +143,6 @@ export default class DiInitializer extends cc.Component {
 
         this.initializeBoosters(gameController);
     };
-
-    private parseInitialField(rawField: (string | null)[][]) {
-        let initialField: (string | null)[][] | null = null;
-        if (rawField && Array.isArray(rawField) && rawField.length > 0) {
-            initialField = [];
-            for (let r = 0; r < rawField.length; r++) {
-                const row: (string | null)[] = [];
-                const rawRow = rawField[r];
-                if (Array.isArray(rawRow)) {
-                    for (let c = 0; c < rawRow.length; c++) {
-                        const cell = rawRow[c];
-                        let value: string | null = null;
-                        if (typeof cell === "string") {
-                            const parts = cell.split(":");
-                            if (parts.length === 2) {
-                                const superId = parts[0].trim();
-                                value = superId;
-                            } else {
-                                value = cell.trim();
-                            }
-                        }
-                        row.push(value && value.length > 0 ? value : null);
-                    }
-                }
-                initialField.push(row);
-            }
-        }
-        return initialField;
-    }
 
     private async initSupertiles(tileSpriteDictionary: TileSpriteDictionary) {
         await this.superTilesConfig.loadSuperTiles();

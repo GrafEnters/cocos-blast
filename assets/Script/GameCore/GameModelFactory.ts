@@ -9,7 +9,7 @@ import DynamiteMaxSupertileExtension from "./Supertiles/DynamiteMaxSupertileExte
 import BombBoosterExtension from "./Boosters/BombBoosterExtension";
 import TeleportBoosterExtension from "./Boosters/TeleportBoosterExtension";
 import SuperTilesConfig from "../Config/SuperTilesConfig";
-import BoostersConfig from "../Config/BoostersConfig";
+import BoostersConfigList from "../Config/BoostersConfigList";
 import DiContainer from "../DI/DiContainer";
 import type { DynamiteSupertileConfig } from "../Config/DynamiteSupertileConfig";
 
@@ -20,7 +20,7 @@ export default class GameModelFactory {
         this.container = container;
     }
 
-    create(rows: number, cols: number, colors: string[], moves: number, targetScore: number, superTilesConfig: SuperTilesConfig, boostersConfig: BoostersConfig): IGameModel {
+    create(rows: number, cols: number, colors: string[], moves: number, targetScore: number, superTilesConfig: SuperTilesConfig, boostersConfig: BoostersConfigList): IGameModel {
         const model = new BlastGameModel(rows, cols, colors, moves, targetScore);
 
         model.setSuperTileGenerationCallback((size: number) => {

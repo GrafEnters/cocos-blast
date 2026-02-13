@@ -1,4 +1,5 @@
 const { ccclass, property } = cc._decorator;
+import LevelConfig from "./LevelConfig";
 
 @ccclass
 export default class MainLevelsConfig extends cc.Component {
@@ -9,9 +10,9 @@ export default class MainLevelsConfig extends cc.Component {
     @property
     currentLevelIndex: number = 0;
 
-    private _levels: cc.JsonAsset[] = [];
+    private _levels: LevelConfig[] = [];
 
-    get levels(): cc.JsonAsset[] {
+    get levels(): LevelConfig[] {
         return this._levels;
     }
 
@@ -29,23 +30,21 @@ export default class MainLevelsConfig extends cc.Component {
                     return;
                 }
                 if (assets && assets.length > 0) {
-                    this._levels = assets.sort((a, b) => {
-                        const idA = (a.json && (a.json as any).id) != null ? (a.json as any).id : 0;
-                        const idB = (b.json && (b.json as any).id) != null ? (b.json as any).id : 0;
-                        return idA - idB;
-                    });
+                    const configs = assets
+                        .map((a) => new LevelConfig(a))
+                        .sort((a, b) => {
+                            const idA = a.id != null ? a.id : 0;
+                            const idB = b.id != null ? b.id : 0;
+                            return idA - idB;
+                        });
+                    this._levels = configs;
                 }
                 resolve();
             });
         });
     }
 
-    private get raw(): any {
-        const levelAsset = this.currentLevelAsset;
-        return levelAsset ? levelAsset.json : {};
-    }
-
-    private get currentLevelAsset(): cc.JsonAsset | null {
+    private get currentLevelConfig(): LevelConfig | null {
         if (!this._levels || this._levels.length === 0) {
             return null;
         }
@@ -64,50 +63,44 @@ export default class MainLevelsConfig extends cc.Component {
     }
 
     get rows(): number {
-        const data: any = this.raw;
-        return data.rows || 8;
+        const data = this.currentLevelConfig;
+        return data ? data.rows || 8 : 8;
     }
 
     get cols(): number {
-        const data: any = this.raw;
-        return data.cols || 8;
+        const data = this.currentLevelConfig;
+        return data ? data.cols || 8 : 8;
     }
 
     get colorsCount(): number {
-        const data: any = this.raw;
-        return data.colorsCount || 4;
+        const data = this.currentLevelConfig;
+        return data && data.colors.length ? data.colors.length : 4;
     }
 
     get targetScore(): number {
-        const data: any = this.raw;
-        return data.targetScore || 0;
+        const data = this.currentLevelConfig;
+        return data ? data.targetScore || 0 : 0;
     }
 
     get moves(): number {
-        const data: any = this.raw;
-        return data.moves || 0;
+        const data = this.currentLevelConfig;
+        return data ? data.moves || 0 : 0;
     }
 
     get colors(): string[] {
-        const data: any = this.raw;
-        const value = data.colors;
-
-        if (Array.isArray(value)) {
-            return value;
+        const data = this.currentLevelConfig;
+        if (!data || !Array.isArray(data.colors)) {
+            return ["red", "green", "blue", "yellow"];
         }
-
-        return ["red", "green", "blue", "yellow"];
+        return data.colors;
     }
 
     get initialField(): (string | null)[][] | null {
-        const data: any = this.raw;
-        const value = data.initialField;
-
-        if (!Array.isArray(value) || value.length === 0) {
+        const data = this.currentLevelConfig;
+        if (!data || !Array.isArray(data.initialField) || data.initialField.length === 0) {
             return null;
         }
-
-        return value;
+        return data.initialField;
     }
 }
 

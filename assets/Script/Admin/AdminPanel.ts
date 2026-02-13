@@ -74,8 +74,8 @@ export default class AdminPanel extends cc.Component {
             const label = node.getComponentInChildren(cc.Label);
 
             if (label) {
-                const data = levels[i] && levels[i].json ? levels[i].json : null;
-                label.string = (data && data.name) ? data.name : "Level " + levelIndex;
+                const level = levels[i];
+                label.string = (level && level.name) ? level.name : "Level " + levelIndex;
             }
 
             node.name = "SelectLevel" + levelIndex + "Button";

@@ -2,7 +2,7 @@ const { ccclass, property } = cc._decorator;
 
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
-import BoostersConfig from "../Config/BoostersConfig";
+import BoostersConfigList from "../Config/BoostersConfigList";
 import PlayerProfile from "../PlayerProfile";
 
 @ccclass
@@ -18,7 +18,7 @@ export default class BoosterButtonView extends cc.Component {
     countLabel: cc.Label = null;
 
     private currentCount: number = 0;
-    private boostersConfig: BoostersConfig = null;
+    private boostersConfig: BoostersConfigList = null;
     private profile: PlayerProfile = null;
 
     onLoad() {
@@ -38,7 +38,7 @@ export default class BoosterButtonView extends cc.Component {
         if (!container.has(DiTokens.BoostersConfig)) {
             return;
         }
-        this.boostersConfig = container.resolve<BoostersConfig>(DiTokens.BoostersConfig);
+        this.boostersConfig = container.resolve<BoostersConfigList>(DiTokens.BoostersConfig);
     }
 
     private resolveProfile() {
