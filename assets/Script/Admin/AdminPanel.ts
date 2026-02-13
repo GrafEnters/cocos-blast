@@ -2,14 +2,11 @@ const { ccclass, property } = cc._decorator;
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
 import IGameController from "../GameCore/IGameController";
-import LevelsConfigList from "../Config/MainLevelConfig";
+import LevelsConfigList from "../Config/LevelsConfigList";
 import PlayerProfile from "../PlayerProfile";
 
 @ccclass
 export default class AdminPanel extends cc.Component {
-
-    @property(LevelsConfigList)
-    mainLevelConfig: LevelsConfigList = null;
 
     @property(cc.Node)
     buttonsGroup: cc.Node = null;
@@ -57,11 +54,20 @@ export default class AdminPanel extends cc.Component {
     }
 
     private buildLevelButtons() {
-        if (!this.buttonsGroup || !this.levelButtonPrefab || !this.mainLevelConfig) {
+        if (!this.buttonsGroup || !this.levelButtonPrefab) {
             return;
         }
 
-        const levels = this.mainLevelConfig.getConfigs();
+        if (!DiContainer.instance.has(DiTokens.LevelsConfigList)) {
+            return;
+        }
+
+        const levelsConfigList = DiContainer.instance.resolve<LevelsConfigList>(DiTokens.LevelsConfigList);
+        if (!levelsConfigList) {
+            return;
+        }
+
+        const levels = levelsConfigList.getConfigs();
 
         if (!levels || levels.length === 0) {
             return;
@@ -97,11 +103,16 @@ export default class AdminPanel extends cc.Component {
     }
 
     private startLevel(index: number) {
-        if (!this.mainLevelConfig) {
+        if (!DiContainer.instance.has(DiTokens.LevelsConfigList)) {
             return;
         }
 
-        const levels = this.mainLevelConfig.getConfigs();
+        const levelsConfigList = DiContainer.instance.resolve<LevelsConfigList>(DiTokens.LevelsConfigList);
+        if (!levelsConfigList) {
+            return;
+        }
+
+        const levels = levelsConfigList.getConfigs();
 
         if (!levels || levels.length === 0) {
             return;

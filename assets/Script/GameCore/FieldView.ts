@@ -5,6 +5,7 @@ import IFieldView from "./IFieldView";
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
 import TileSpriteDictionary from "./TileSpriteDictionary";
+import { MainGameConfig } from "../Config/MainGameConfigType";
 
 export default class FieldView implements IFieldView {
     private rows: number;
@@ -19,12 +20,12 @@ export default class FieldView implements IFieldView {
     private defaultTileSpriteFrame: cc.SpriteFrame;
     private tileSpriteDictionary: TileSpriteDictionary = null;
 
-    constructor(rows: number, cols: number, colors: string[], tileSize: number, tileSpacing: number, defaultTileSpriteFrame: cc.SpriteFrame, tileColorConfig: TileColorConfig) {
+    constructor(rows: number, cols: number, colors: string[], mainGameConfig: MainGameConfig, defaultTileSpriteFrame: cc.SpriteFrame, tileColorConfig: TileColorConfig) {
         this.rows = rows;
         this.cols = cols;
         this.colors = colors && colors.length > 0 ? colors.slice() : ["red", "green", "blue", "yellow"];
-        this.tileSize = tileSize;
-        this.tileSpacing = tileSpacing;
+        this.tileSize = mainGameConfig.tileSize;
+        this.tileSpacing = mainGameConfig.tileSpacing;
         this.defaultTileSpriteFrame = defaultTileSpriteFrame;
         this.tileColorConfig = tileColorConfig;
 

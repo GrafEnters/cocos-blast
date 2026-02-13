@@ -12,7 +12,7 @@ import SupertilesConfigList from "../Config/SupertilesConfigList";
 import BoostersConfigList from "../Config/BoostersConfigList";
 import DiContainer from "../DI/DiContainer";
 import type { DynamiteSupertileConfig } from "../Config/DynamiteSupertileConfig";
-import LevelConfig from "../Config/LevelConfig";
+import {LevelConfig} from "../Config/LevelConfig";
 
 export default class GameModelFactory {
     private container: DiContainer;

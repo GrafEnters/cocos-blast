@@ -1,17 +1,15 @@
 const {ccclass, property, executeInEditMode} = cc._decorator;
 import DiContainer from "./DiContainer";
 import DiTokens from "./DiTokens";
-import MainGameConfig from "../Config/MainGameConfig";
-import LevelsConfigList from "../Config/MainLevelConfig";
+import FieldViewConfigComponent from "../Config/FieldViewConfigComponent";
+import LevelsConfigList from "../Config/LevelsConfigList";
 import BoostersConfigList from "../Config/BoostersConfigList";
-import {BoosterConfig} from "../Config/BoosterConfig";
 import PlayerProfile from "../PlayerProfile";
 import TileColorConfig from "../Config/TileColorConfig";
 import SupertilesConfigList from "../Config/SupertilesConfigList";
 import IGameController from "../GameCore/IGameController";
 import GameController from "../GameCore/GameController";
 import GameModelFactory from "../GameCore/Models/GameModelFactory";
-import LevelConfig from "../Config/LevelConfig";
 import BlastAnimationView from "../GameCore/Animations/BlastAnimationView";
 import ShuffleNoMovesResolver from "../GameCore/ShuffleNoMovesResolver";
 import FieldView from "../GameCore/FieldView";
@@ -29,11 +27,11 @@ export default class DiInitializer extends cc.Component {
     @property
     rebuild: boolean = false;
 
-    @property(MainGameConfig)
-    mainGameConfig: MainGameConfig = null;
+    @property(FieldViewConfigComponent)
+    fieldViewConfigComponent: FieldViewConfigComponent = null;
 
     @property(LevelsConfigList)
-    mainLevelConfig: LevelsConfigList = null;
+    levelsConfigList: LevelsConfigList = null;
 
     @property(TileColorConfig)
     tileColorConfig: TileColorConfig = null;
@@ -56,15 +54,15 @@ export default class DiInitializer extends cc.Component {
     async onLoad() {
         DiContainer.instance.register(DiTokens.DiInitializer, this);
 
-        await this.mainLevelConfig.loadConfigs();
+        await this.levelsConfigList.loadConfigs();
         this.initialize();
     }
 
     private async initialize() {
         const container = DiContainer.instance;
 
-        container.register(DiTokens.MainGameConfig, this.mainGameConfig);
-        container.register(DiTokens.MainLevelConfig, this.mainLevelConfig);
+        container.register(DiTokens.MainGameConfig, this.fieldViewConfigComponent);
+        container.register(DiTokens.LevelsConfigList, this.levelsConfigList);
         container.register(DiTokens.TileColorConfig, this.tileColorConfig);
         container.register(DiTokens.BoostersConfig, this.boostersConfig);
         container.register(DiTokens.SuperTilesConfig, this.superTilesConfig);
@@ -114,10 +112,9 @@ export default class DiInitializer extends cc.Component {
 
 
         const levelIndex = profile.getCurrentLevelIndex();
-        const levelConfig = this.mainLevelConfig.getLevelConfigByIndex(levelIndex);
+        const levelConfig = this.levelsConfigList.getLevelConfigByIndex(levelIndex);
 
-        const tileSize = this.mainGameConfig ? this.mainGameConfig.tileSize : 64;
-        const tileSpacing = this.mainGameConfig ? this.mainGameConfig.tileSpacing : 4;
+        const mainGameConfig = this.fieldViewConfigComponent.getMainGameConfig();
         const initialField = levelConfig.initialField;
 
         const animationView = new BlastAnimationView();
@@ -128,7 +125,7 @@ export default class DiInitializer extends cc.Component {
 
         const tileSpriteDictionary = container.resolve<TileSpriteDictionary>(DiTokens.TileSpriteDictionary);
         const defaultTileSpriteFrame = tileSpriteDictionary ? tileSpriteDictionary.getDefaultSprite() : null;
-        const fieldView: IFieldView = new FieldView(levelConfig.rows, levelConfig.cols, levelConfig.colors, tileSize, tileSpacing, defaultTileSpriteFrame, this.tileColorConfig);
+        const fieldView: IFieldView = new FieldView(levelConfig.rows, levelConfig.cols, levelConfig.colors, mainGameConfig, defaultTileSpriteFrame, this.tileColorConfig);
 
         const gameController: IGameController = new GameController(model, this.gameUI, fieldView, animationView, noMovesResolver, initialField);
 

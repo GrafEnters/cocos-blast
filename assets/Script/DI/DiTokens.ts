@@ -2,7 +2,7 @@ export default class DiTokens {
     static readonly GameController = "GameCore";
     static readonly Input = "Input";
     static readonly MainGameConfig = "MainGameConfig";
-    static readonly MainLevelConfig = "MainLevelConfig";
+    static readonly LevelsConfigList = "LevelsConfigList";
     static readonly TileColorConfig = "TileColorConfig";
     static readonly DiInitializer = "DiInitializer";
     static readonly BombBooster = "BombBooster";
