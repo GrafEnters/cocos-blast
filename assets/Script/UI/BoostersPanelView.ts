@@ -47,4 +47,18 @@ export default class BoostersPanelView extends cc.Component {
             }
         }
     }
+
+    refreshAllButtons(): void {
+        if (!this.boostersButtonsContainer) {
+            return;
+        }
+        const children = this.boostersButtonsContainer.children;
+        for (let i = 0; i < children.length; i++) {
+            const child = children[i];
+            const view = child.getComponent(BoosterButtonView);
+            if (view) {
+                view.refresh();
+            }
+        }
+    }
 }

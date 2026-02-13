@@ -110,5 +110,15 @@ export default class BoosterButtonView extends cc.Component {
         this.updateView();
         return true;
     }
+
+    refresh(): void {
+        if (!this.boosterId) {
+            return;
+        }
+        if (this.profile) {
+            this.currentCount = this.profile.getBoosterCount(this.boosterId);
+        }
+        this.updateView();
+    }
 }
 
