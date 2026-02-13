@@ -98,10 +98,10 @@ export default class GameController implements IGameController {
             this.fieldView.rebuild(this.model.getBoard());
             this.updateMovesView();
             this.updateScoreView();
-            this.isAnimating = false;
-            this.checkEndGame();
             this.model.applyGravityAndRefill();
             this.fieldView.rebuild(this.model.getBoard());
+            this.isAnimating = false;
+            const wasShuffleStarted = this.checkEndGame();
             if (onComplete) {
                 onComplete();
             }
@@ -169,7 +169,7 @@ export default class GameController implements IGameController {
     }
 
 
-    private checkEndGame() {
+    private checkEndGame(): boolean {
         const targetScore = this.model.getTargetScore();
         const score = this.model.getScore();
         const remainingMoves = this.model.getRemainingMoves();
@@ -184,14 +184,14 @@ export default class GameController implements IGameController {
             if (this.ui) {
                 this.ui.win();
             }
-            return;
+            return false;
         }
 
         if (isLoseByMoves) {
             if (this.ui) {
                 this.ui.lose();
             }
-            return;
+            return false;
         }
 
         if (isLoseByNoMoves && this.noMovesResolver) {
@@ -200,13 +200,23 @@ export default class GameController implements IGameController {
             const shuffle = (onComplete: () => void) => {
                 this.model.shuffleBoard();
                 this.fieldView.playShuffleAnimation(this.model.getBoard(), () => {
+                    this.model.applyGravityAndRefill();
+                    this.fieldView.rebuild(this.model.getBoard());
+                    this.updateMovesView();
+                    this.updateScoreView();
                     this.isAnimating = false;
                     onComplete();
                 });
             };
 
-            if (this.noMovesResolver.tryResolve(shuffle)) {
-                return;
+            const onShuffleComplete = () => {
+                if (!this.model.hasAvailableMoves()) {
+                    this.checkEndGame();
+                }
+            };
+
+            if (this.noMovesResolver.tryResolve(shuffle, onShuffleComplete)) {
+                return true;
             }
 
             this.isAnimating = false;
@@ -217,6 +227,8 @@ export default class GameController implements IGameController {
                 this.ui.lose();
             }
         }
+
+        return false;
     }
 
     private updateMovesView() {
