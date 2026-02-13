@@ -6,4 +6,4 @@ export interface SuperTileChainData {
     depth?: number;
 }
 
-export type SuperTileData = SuperTileChainData | Record<string, unknown>;
+export type SuperTileData = SuperTileChainData;

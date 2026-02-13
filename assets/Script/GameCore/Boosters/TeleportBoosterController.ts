@@ -5,6 +5,7 @@ import IBoosterController from "./IBoosterController";
 import {BoosterConfig} from "../../Config/BoosterConfig";
 import IFieldView from "../IFieldView";
 import IAnimationView from "../Animations/IAnimationView";
+import { BoosterIds } from "../Constants/GameConstants";
 
 export default class TeleportBoosterController implements IBoosterController {
     private overlay: cc.Node = null;
@@ -132,7 +133,7 @@ export default class TeleportBoosterController implements IBoosterController {
         const fromTile = this.firstTile;
         this.firstTile = null;
         this.teleportInProgress = true;
-        this.gameCore.useBooster("teleport", {
+        this.gameCore.useBooster(BoosterIds.TELEPORT, {
             fromRow: fromTile.row,
             fromCol: fromTile.col,
             toRow: tile.row,

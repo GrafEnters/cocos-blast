@@ -7,6 +7,7 @@ import {BombBoosterConfig} from "../../Config/BombBoosterConfig";
 import IFieldView from "../IFieldView";
 import IAnimationView from "../Animations/IAnimationView";
 import { PreAnimationCallback } from "../Types/BoosterData";
+import { BoosterIds } from "../Constants/GameConstants";
 
 export default class BombBoosterController implements IBoosterController {
     private overlay: cc.Node = null;
@@ -33,10 +34,10 @@ export default class BombBoosterController implements IBoosterController {
         this.gameCore = gameCore;
         this.bombButton = bombButton;
 
-        const bombConfig = config as BombBoosterConfig;
-        if (!bombConfig) {
-            throw new Error(`BombBoosterConfig is incorrect`)
+        if (!config || typeof config !== "object" || !("bombSprite" in config)) {
+            throw new Error("BombBoosterConfig is incorrect");
         }
+        const bombConfig = config as BombBoosterConfig;
 
         const path = bombConfig.bombSprite;
         cc.resources.load(path, cc.SpriteFrame, (err, spriteFrame: cc.SpriteFrame) => {
@@ -114,7 +115,7 @@ export default class BombBoosterController implements IBoosterController {
             this.hintLabel.active = false;
         }
         this.bombInProgress = true;
-        this.gameCore.useBooster("bomb", {
+        this.gameCore.useBooster(BoosterIds.BOMB, {
             row: tile.row,
             col: tile.col,
             bombSpriteFrame: this.bombSpriteFrame,

@@ -27,4 +27,4 @@ export interface TeleportBoosterData {
     chainData?: ChainData;
 }
 
-export type BoosterData = BombBoosterData | TeleportBoosterData | Record<string, unknown>;
+export type BoosterData = BombBoosterData | TeleportBoosterData;

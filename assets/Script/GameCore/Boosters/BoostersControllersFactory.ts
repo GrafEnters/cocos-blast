@@ -7,6 +7,7 @@ import TeleportBoosterController from "./TeleportBoosterController";
 import DiContainer from "../../DI/DiContainer";
 import DiTokens from "../../DI/DiTokens";
 import IBoosterController from "./IBoosterController";
+import { BoosterIds } from "../Constants/GameConstants";
 
 export default class BoostersControllersFactory {
     createControllers(
@@ -22,17 +23,16 @@ export default class BoostersControllersFactory {
             let controller: IBoosterController;
             let token: string;
             switch (key) {
-                case "bomb":
+                case BoosterIds.BOMB:
                     controller = new BombBoosterController();
                     token = DiTokens.BombBooster;
                     break;
-                case "teleport":
+                case BoosterIds.TELEPORT:
                     controller = new TeleportBoosterController();
                     token = DiTokens.TeleportBooster;
                     break;
                 default:
-                    throw new Error(`Not identified booster ${key}`)
-                    continue;
+                    throw new Error(`Not identified booster ${key}`);
             }
             controller.init(
                 panelView.activeBoosterOverlay,

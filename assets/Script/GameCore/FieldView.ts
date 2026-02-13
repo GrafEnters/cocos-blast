@@ -34,7 +34,7 @@ export default class FieldView implements IFieldView {
         for (let row = 0; row < this.rows; row++) {
             this.tiles[row] = [];
             for (let col = 0; col < this.cols; col++) {
-                const cell = board[row][col] as BlastGameBoardCell;
+                const cell: BlastGameBoardCell = board[row][col];
 
                 if (cell === null) {
                     this.tiles[row][col] = null;

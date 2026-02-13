@@ -1,10 +1,12 @@
 import ISupertileExtension from "./ISupertileExtension";
 import IGameModel, { BlastGameStepResult } from "../Models/IGameModel";
 import type { SupertileConfig } from "../../Config/SupertileConfig";
-import { SuperTileData, SuperTileChainData } from "../Types/SuperTileData";
+import { SuperTileData } from "../Types/SuperTileData";
+import { getChainDataFromSuperTileData, createRemovedCellTracker, addSuperTileToQueue, addDirectStepToChain, processSuperTileQueue, calculateAndApplyScore, createBlastGameStepResult } from "./SupertileChainUtils";
+import { SupertileIds } from "../Constants/GameConstants";
 
 export default class RocketHSupertileExtension implements ISupertileExtension {
-    id: string = "rocketH";
+    id: string = SupertileIds.ROCKET_H;
 
     constructor(config: SupertileConfig) {
     }
@@ -13,21 +15,10 @@ export default class RocketHSupertileExtension implements ISupertileExtension {
         if (row < 0 || row >= model.getRows()) {
             return null;
         }
-        const removed: { row: number; col: number }[] = [];
-        const used: { [key: string]: boolean } = {};
-        const chainData = data && typeof data === "object" && "superTileChainSteps" in data && Array.isArray(data.superTileChainSteps) ? data as SuperTileChainData : null;
-        const chainSteps = chainData ? chainData.superTileChainSteps : null;
+
+        const chainData = getChainDataFromSuperTileData(data);
+        const tracker = createRemovedCellTracker();
         const directStep: { row: number; col: number }[] = [];
-
-        const pushRemoved = (r: number, c: number) => {
-            const key = r + "_" + c;
-            if (used[key]) {
-                return;
-            }
-            used[key] = true;
-            removed.push({ row: r, col: c });
-        };
-
         const scoreBefore = model.getScore();
         let directRemovedCount = 0;
 
@@ -38,46 +29,34 @@ export default class RocketHSupertileExtension implements ISupertileExtension {
             }
             if (row === row && c === col) {
                 model.setCellValue(row, c, null);
-                pushRemoved(row, c);
+                tracker.pushRemoved(row, c);
                 directStep.push({ row, col: c });
                 directRemovedCount++;
                 continue;
             }
             if (model.isSuperTile(row, c)) {
                 const id = model.getSuperTileId(row, c);
-                if (!id) {
+                if (!id || !chainData) {
                     continue;
                 }
-                if (chainData && "superTileQueue" in chainData && Array.isArray(chainData.superTileQueue)) {
-                    const depth = typeof chainData.depth === "number" && chainData.depth >= 0 ? chainData.depth : 0;
-                    chainData.superTileQueue.push({ id, row, col: c, depth: depth + 1 });
-                }
+                addSuperTileToQueue(chainData, id, row, c);
                 continue;
             }
             model.setCellValue(row, c, null);
-            pushRemoved(row, c);
+            tracker.pushRemoved(row, c);
             directStep.push({ row, col: c });
             directRemovedCount++;
         }
-        if (removed.length === 0) {
+
+        if (tracker.removed.length === 0) {
             return null;
         }
-        if (chainSteps && directStep.length > 0) {
-            const depth = chainData && typeof chainData.depth === "number" && chainData.depth >= 0 ? chainData.depth : 0;
-            chainSteps.push({ depth, cells: directStep });
-        }
-        if (directRemovedCount > 0) {
-            const scoreDeltaDirect = model.calculateGroupScorePublic(directRemovedCount);
-            model.applyScorePublic(scoreDeltaDirect);
-        }
-        const scoreDelta = model.getScore() - scoreBefore;
-        return {
-            removed,
-            score: model.getScore(),
-            targetScore: model.getTargetScore(),
-            remainingMoves: model.getRemainingMoves(),
-            scoreDelta,
-        };
+
+        processSuperTileQueue(model, chainData, tracker);
+        addDirectStepToChain(chainData, directStep);
+        calculateAndApplyScore(model, directRemovedCount);
+
+        return createBlastGameStepResult(model, tracker.removed, scoreBefore);
     }
 }
 

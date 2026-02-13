@@ -13,6 +13,7 @@ import BoostersConfigList from "../../Config/BoostersConfigList";
 import DiContainer from "../../DI/DiContainer";
 import type { DynamiteSupertileConfig } from "../../Config/DynamiteSupertileConfig";
 import {LevelConfig} from "../../Config/LevelConfig";
+import { SupertileIds, BoosterIds } from "../Constants/GameConstants";
 
 export default class GameModelFactory {
     private container: DiContainer;
@@ -29,17 +30,20 @@ export default class GameModelFactory {
         });
 
         const extensionFactory = new SupertileExtensionFactory();
-        extensionFactory.register(new RocketHSupertileExtension(superTilesConfig.getSuperTileConfig("rocketH")));
-        extensionFactory.register(new RocketVSupertileExtension(superTilesConfig.getSuperTileConfig("rocketV")));
-        const dynamiteConfig = superTilesConfig.getSuperTileConfig("dynamite") as DynamiteSupertileConfig;
-        extensionFactory.register(new DynamiteSupertileExtension(dynamiteConfig));
-        extensionFactory.register(new DynamiteMaxSupertileExtension(superTilesConfig.getSuperTileConfig("dynamiteMax")));
+        extensionFactory.register(new RocketHSupertileExtension(superTilesConfig.getSuperTileConfig(SupertileIds.ROCKET_H)));
+        extensionFactory.register(new RocketVSupertileExtension(superTilesConfig.getSuperTileConfig(SupertileIds.ROCKET_V)));
+        const dynamiteConfig = superTilesConfig.getSuperTileConfig(SupertileIds.DYNAMITE);
+        if (!dynamiteConfig || typeof dynamiteConfig !== "object" || !("radius" in dynamiteConfig)) {
+            throw new Error("DynamiteSupertileConfig is required");
+        }
+        extensionFactory.register(new DynamiteSupertileExtension(dynamiteConfig as DynamiteSupertileConfig));
+        extensionFactory.register(new DynamiteMaxSupertileExtension(superTilesConfig.getSuperTileConfig(SupertileIds.DYNAMITE_MAX)));
         model.setSuperTileExtensionFactory(extensionFactory);
 
 
         const boosterExtensionFactory = new BoosterExtensionFactory();
-        boosterExtensionFactory.register(new BombBoosterExtension(boostersConfig.getBoosterConfig("bomb")));
-        boosterExtensionFactory.register(new TeleportBoosterExtension(boostersConfig.getBoosterConfig("teleport")));
+        boosterExtensionFactory.register(new BombBoosterExtension(boostersConfig.getBoosterConfig(BoosterIds.BOMB)));
+        boosterExtensionFactory.register(new TeleportBoosterExtension(boostersConfig.getBoosterConfig(BoosterIds.TELEPORT)));
 
         model.setBoosterExtensionFactory(boosterExtensionFactory);
 

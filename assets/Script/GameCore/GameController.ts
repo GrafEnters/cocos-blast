@@ -86,6 +86,7 @@ export default class GameController implements IGameController {
 
         this.playEventAnimations(eventResult, event.onComplete).catch((error) => {
             console.error("Error in playEventAnimations:", error);
+            throw error;
         });
     }
 
@@ -149,20 +150,20 @@ export default class GameController implements IGameController {
     }
 
     useBooster(boosterId: string, data?: BoosterData, onComplete?: () => void): void {
-        let tile: Tile = null;
+        let tile: Tile | null = null;
         if (data && typeof data === "object" && "row" in data && typeof data.row === "number" && "col" in data && typeof data.col === "number") {
             tile = this.fieldView.getTile(data.row, data.col);
         }
 
         if (!tile) {
-            tile = {row: -1, col: -1, node: null} as Tile;
+            tile = {row: -1, col: -1, node: null};
         }
 
         const event: TileInputEvent = {
             type: TileInputEventType.Booster,
             tile: tile,
             boosterId: boosterId,
-            boosterData: data || {},
+            boosterData: data,
             onComplete: onComplete
         };
         this.handleEvent(event);
@@ -170,65 +171,101 @@ export default class GameController implements IGameController {
 
 
     private checkEndGame(): boolean {
-        const targetScore = this.model.getTargetScore();
-        const score = this.model.getScore();
-        const remainingMoves = this.model.getRemainingMoves();
-        const hasMovesOnBoard = this.model.hasAvailableMoves();
-
-        const hasTarget = targetScore > 0;
-        const isWin = hasTarget && score >= targetScore;
-        const isLoseByMoves = hasTarget && score < targetScore && remainingMoves <= 0;
-        const isLoseByNoMoves = hasTarget && score < targetScore && remainingMoves > 0 && !hasMovesOnBoard;
-
-        if (isWin) {
-            if (this.ui) {
-                this.ui.win();
-            }
+        const gameState = this.getGameState();
+        
+        if (this.isWin(gameState)) {
+            this.handleWin();
             return false;
         }
 
-        if (isLoseByMoves) {
-            if (this.ui) {
-                this.ui.lose();
-            }
+        if (this.isLoseByMoves(gameState)) {
+            this.handleLose();
             return false;
         }
 
-        if (isLoseByNoMoves && this.noMovesResolver) {
-            this.isAnimating = true;
-
-            const shuffle = (onComplete: () => void) => {
-                this.model.shuffleBoard();
-                this.fieldView.playShuffleAnimation(this.model.getBoard(), () => {
-                    this.model.applyGravityAndRefill();
-                    this.fieldView.rebuild(this.model.getBoard());
-                    this.updateMovesView();
-                    this.updateScoreView();
-                    this.isAnimating = false;
-                    onComplete();
-                });
-            };
-
-            const onShuffleComplete = () => {
-                if (!this.model.hasAvailableMoves()) {
-                    this.checkEndGame();
-                }
-            };
-
-            if (this.noMovesResolver.tryResolve(shuffle, onShuffleComplete)) {
-                return true;
-            }
-
-            this.isAnimating = false;
-        }
-
-        if (isLoseByNoMoves) {
-            if (this.ui) {
-                this.ui.lose();
-            }
+        if (this.isLoseByNoMoves(gameState)) {
+            return this.handleLoseByNoMoves();
         }
 
         return false;
+    }
+
+    private getGameState(): { targetScore: number; score: number; remainingMoves: number; hasMovesOnBoard: boolean } {
+        return {
+            targetScore: this.model.getTargetScore(),
+            score: this.model.getScore(),
+            remainingMoves: this.model.getRemainingMoves(),
+            hasMovesOnBoard: this.model.hasAvailableMoves()
+        };
+    }
+
+    private isWin(state: { targetScore: number; score: number }): boolean {
+        return state.targetScore > 0 && state.score >= state.targetScore;
+    }
+
+    private isLoseByMoves(state: { targetScore: number; score: number; remainingMoves: number }): boolean {
+        return state.targetScore > 0 && state.score < state.targetScore && state.remainingMoves <= 0;
+    }
+
+    private isLoseByNoMoves(state: { targetScore: number; score: number; remainingMoves: number; hasMovesOnBoard: boolean }): boolean {
+        return state.targetScore > 0 && 
+               state.score < state.targetScore && 
+               state.remainingMoves > 0 && 
+               !state.hasMovesOnBoard;
+    }
+
+    private handleWin(): void {
+        if (this.ui) {
+            this.ui.win();
+        }
+    }
+
+    private handleLose(): void {
+        if (this.ui) {
+            this.ui.lose();
+        }
+    }
+
+    private handleLoseByNoMoves(): boolean {
+        if (!this.noMovesResolver) {
+            this.handleLose();
+            return false;
+        }
+
+        this.isAnimating = true;
+
+        const shuffle = this.createShuffleCallback();
+        const onShuffleComplete = this.createShuffleCompleteCallback();
+
+        if (this.noMovesResolver.tryResolve(shuffle, onShuffleComplete)) {
+            return true;
+        }
+
+        this.isAnimating = false;
+        this.handleLose();
+        return false;
+    }
+
+    private createShuffleCallback(): (onComplete: () => void) => void {
+        return (onComplete: () => void) => {
+            this.model.shuffleBoard();
+            this.fieldView.playShuffleAnimation(this.model.getBoard(), () => {
+                this.model.applyGravityAndRefill();
+                this.fieldView.rebuild(this.model.getBoard());
+                this.updateMovesView();
+                this.updateScoreView();
+                this.isAnimating = false;
+                onComplete();
+            });
+        };
+    }
+
+    private createShuffleCompleteCallback(): () => void {
+        return () => {
+            if (!this.model.hasAvailableMoves()) {
+                this.checkEndGame();
+            }
+        };
     }
 
     private updateMovesView() {
