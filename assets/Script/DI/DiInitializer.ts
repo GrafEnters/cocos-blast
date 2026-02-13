@@ -166,11 +166,11 @@ export default class DiInitializer extends cc.Component {
     }
 
     private initializeBoosters(gameCore: IGameController): void {
-        const configs = this.boostersConfig.getBoosterConfigs();
-        const buttons = this.boostersPanel.initialize(configs as BoosterConfig[]);
+        const configs = this.boostersConfig.getConfigs();
+        const buttons = this.boostersPanel.initialize(configs);
 
         const boostersButtonFactory = new BoostersControllersFactory();
-        boostersButtonFactory.createControllers(configs as BoosterConfig[], buttons, this.boostersPanel, gameCore);
+        boostersButtonFactory.createControllers(configs, buttons, this.boostersPanel, gameCore);
     }
 
     async update() {

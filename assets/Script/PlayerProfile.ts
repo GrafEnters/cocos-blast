@@ -1,13 +1,15 @@
+import BoostersConfigList from "./Config/BoostersConfigList";
+
 export default class PlayerProfile {
 
     private boosterCounts: Map<string, number> = new Map();
     private boostersInitialized: boolean = false;
 
-    ensureBoostersInitialized(config: import("./Config/BoostersConfig").default): void {
+    ensureBoostersInitialized(config: BoostersConfigList): void {
         if (this.boostersInitialized || !config) {
             return;
         }
-        const configs = config.getBoosterConfigs();
+        const configs = config.getConfigs();
         for (let i = 0; i < configs.length; i++) {
             const cfg: any = configs[i];
             if (!cfg || typeof cfg.id !== "string") {

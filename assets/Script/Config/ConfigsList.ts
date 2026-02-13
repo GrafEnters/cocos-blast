@@ -17,7 +17,5 @@ export default abstract class ConfigsList<T> extends cc.Component {
         this._configs = await LoadConfigsFromDir<T>(this.path);
     }
 
-    getConfigs(): T[] {
-        return this._configs.slice();
-    }
+    getConfigs = (): T[] => this._configs.slice();
 }

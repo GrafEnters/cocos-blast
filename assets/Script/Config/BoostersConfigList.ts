@@ -5,11 +5,6 @@ const {ccclass} = cc._decorator;
 
 @ccclass
 export default class BoostersConfigList extends ConfigsList<BoosterConfig> {
-
-    getBoosterConfigs(): BoosterConfig[] {
-        return this.getConfigs();
-    }
-
     getBoosterConfig(id: string): BoosterConfig {
         for (let i = 0; i < this._configs.length; i++) {
             const cfg = this._configs[i];
