@@ -1,5 +1,6 @@
 import TileInputEventType from "../Input/TileInputEventType";
 import TileInputEvent from "../Input/TileInputEvent";
+import { BoosterData } from "./Types/BoosterData";
 
 export default interface IGameController {
     init(): void;
@@ -11,7 +12,7 @@ export default interface IGameController {
     addMoves(value: number): void;
     isGameEnded(): boolean;
     getCellAtPosition?(worldPos: cc.Vec2): { row: number; col: number } | null;
-    useBooster?(boosterId: string, data?: any, onComplete?: () => void): void;
+    useBooster?(boosterId: string, data?: BoosterData, onComplete?: () => void): void;
 }
 
 

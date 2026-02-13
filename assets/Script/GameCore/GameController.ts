@@ -8,6 +8,7 @@ import IAnimationView from "./Animations/IAnimationView";
 import IFieldView from "./IFieldView";
 import INoMovesResolver from "./INoMovesResolver";
 import IGameUi from "../UI/IGameUi";
+import { BoosterData } from "./Types/BoosterData";
 
 export default class GameController implements IGameController {
     private model: IGameModel = null;
@@ -147,9 +148,9 @@ export default class GameController implements IGameController {
         return null;
     }
 
-    useBooster(boosterId: string, data?: any, onComplete?: () => void): void {
+    useBooster(boosterId: string, data?: BoosterData, onComplete?: () => void): void {
         let tile: Tile = null;
-        if (data && typeof data.row === "number" && typeof data.col === "number") {
+        if (data && typeof data === "object" && "row" in data && typeof data.row === "number" && "col" in data && typeof data.col === "number") {
             tile = this.fieldView.getTile(data.row, data.col);
         }
 

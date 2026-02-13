@@ -2,6 +2,10 @@ import SupertileExtensionFactory from "../Supertiles/SupertileExtensionFactory";
 import BoosterExtensionFactory from "../Boosters/BoosterExtensionFactory";
 import TileInputEventType from "../../Input/TileInputEventType";
 import TileInputEvent from "../../Input/TileInputEvent";
+import IFieldView from "../IFieldView";
+import IAnimationView from "../Animations/IAnimationView";
+import { BoosterData } from "../Types/BoosterData";
+import { SuperTileData } from "../Types/SuperTileData";
 
 export type BlastGameBoardCell = string | null;
 
@@ -21,7 +25,7 @@ export interface GameAnimationStep {
 export interface GameEventResult {
     stepResult: BlastGameStepResult;
     animationSteps: GameAnimationStep[];
-    preAnimation?: (fieldView: any, animationView: any) => Promise<void>;
+    preAnimation?: (fieldView: IFieldView, animationView: IAnimationView) => Promise<void>;
 }
 
 export default interface IGameModel {
@@ -34,12 +38,12 @@ export default interface IGameModel {
     getTargetScore(): number;
     hasAvailableMoves(): boolean;
     addMoves(value: number): void;
-    handleTap(row: number, col: number, data?: any): BlastGameStepResult | null;
-    handleBooster(boosterId: string, data?: any): BlastGameStepResult | null;
+    handleTap(row: number, col: number, data?: SuperTileData): BlastGameStepResult | null;
+    handleBooster(boosterId: string, data?: BoosterData): BlastGameStepResult | null;
     setSuperTileGenerationCallback(callback: ((groupSize: number) => string | null) | null): void;
     setSuperTileExtensionFactory(factory: SupertileExtensionFactory | null): void;
     setBoosterExtensionFactory(factory: BoosterExtensionFactory | null): void;
-    processSuperTileQueuePublic(data: any): BlastGameStepResult | null;
+    processSuperTileQueuePublic(data: SuperTileData): BlastGameStepResult | null;
     isInsidePublic(row: number, col: number): boolean;
     getRows(): number;
     getCols(): number;

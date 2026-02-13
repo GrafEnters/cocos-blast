@@ -1,5 +1,6 @@
 import Tile from "../Tile";
 import TileInputEventType from "./TileInputEventType";
+import { BoosterData } from "../GameCore/Types/BoosterData";
 
 type TileInputEvent = {
     type: TileInputEventType;
@@ -7,7 +8,7 @@ type TileInputEvent = {
     targetTile?: Tile;
     direction?: cc.Vec2;
     boosterId?: string;
-    boosterData?: any;
+    boosterData?: BoosterData;
     onComplete?: () => void;
 };
 

@@ -3,6 +3,8 @@ import Tile from "../../Tile";
 import BoosterButtonView from "../../UI/BoosterButtonView";
 import IBoosterController from "./IBoosterController";
 import {BoosterConfig} from "../../Config/BoosterConfig";
+import IFieldView from "../IFieldView";
+import IAnimationView from "../Animations/IAnimationView";
 
 export default class TeleportBoosterController implements IBoosterController {
     private overlay: cc.Node = null;
@@ -135,7 +137,7 @@ export default class TeleportBoosterController implements IBoosterController {
             fromCol: fromTile.col,
             toRow: tile.row,
             toCol: tile.col,
-            preAnimation: async (fieldView: any, animationView: any) => {
+            preAnimation: async (fieldView: IFieldView, animationView: IAnimationView) => {
                 if (!fieldView) {
                     return;
                 }

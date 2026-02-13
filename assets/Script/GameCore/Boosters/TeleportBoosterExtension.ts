@@ -1,6 +1,7 @@
 import IBoosterExtension from "./IBoosterExtension";
 import IGameModel, { BlastGameStepResult } from "../Models/IGameModel";
 import type { BoosterConfig } from "../../Config/BoosterConfig";
+import { BoosterData, TeleportBoosterData } from "../Types/BoosterData";
 
 export default class TeleportBoosterExtension implements IBoosterExtension {
     id: string = "teleport";
@@ -8,16 +9,19 @@ export default class TeleportBoosterExtension implements IBoosterExtension {
     constructor(config: BoosterConfig) {
     }
 
-    handle(model: IGameModel, data?: any): BlastGameStepResult | null {
-        if (!data || typeof data.fromRow !== "number" || typeof data.fromCol !== "number" || 
-            typeof data.toRow !== "number" || typeof data.toCol !== "number") {
+    handle(model: IGameModel, data?: BoosterData): BlastGameStepResult | null {
+        if (!data || typeof data !== "object" || !("fromRow" in data) || typeof data.fromRow !== "number" || 
+            !("fromCol" in data) || typeof data.fromCol !== "number" || 
+            !("toRow" in data) || typeof data.toRow !== "number" || 
+            !("toCol" in data) || typeof data.toCol !== "number") {
             return null;
         }
 
-        const fromRow = data.fromRow;
-        const fromCol = data.fromCol;
-        const toRow = data.toRow;
-        const toCol = data.toCol;
+        const teleportData = data as TeleportBoosterData;
+        const fromRow = teleportData.fromRow;
+        const fromCol = teleportData.fromCol;
+        const toRow = teleportData.toRow;
+        const toCol = teleportData.toCol;
 
         if (!model.isInsidePublic(fromRow, fromCol)) {
             return null;

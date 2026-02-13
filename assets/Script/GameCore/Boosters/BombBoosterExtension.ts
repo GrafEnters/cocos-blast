@@ -2,6 +2,7 @@ import IBoosterExtension from "./IBoosterExtension";
 import IGameModel, { BlastGameStepResult } from "../Models/IGameModel";
 import type { BombBoosterConfig } from "../../Config/BombBoosterConfig";
 import {BoosterConfig} from "../../Config/BoosterConfig";
+import { BoosterData, BombBoosterData, ChainData } from "../Types/BoosterData";
 
 export default class BombBoosterExtension implements IBoosterExtension {
     id: string = "bomb";
@@ -16,13 +17,14 @@ export default class BombBoosterExtension implements IBoosterExtension {
         this.radius = bombConfig.radius;
     }
 
-    handle(model: IGameModel, data?: any): BlastGameStepResult | null {
-        if (!data || typeof data.row !== "number" || typeof data.col !== "number") {
+    handle(model: IGameModel, data?: BoosterData): BlastGameStepResult | null {
+        if (!data || typeof data !== "object" || !("row" in data) || typeof data.row !== "number" || !("col" in data) || typeof data.col !== "number") {
             return null;
         }
 
-        const row = data.row;
-        const col = data.col;
+        const bombData = data as BombBoosterData;
+        const row = bombData.row;
+        const col = bombData.col;
 
         if (!model.isInsidePublic(row, col)) {
             return null;
@@ -30,7 +32,7 @@ export default class BombBoosterExtension implements IBoosterExtension {
 
         const removed: { row: number; col: number }[] = [];
         const used: { [key: string]: boolean } = {};
-        const chainData = data && data.chainData && Array.isArray(data.chainData.superTileChainSteps) ? data.chainData as { superTileChainSteps: { depth: number; cells: { row: number; col: number }[] }[]; superTileQueue?: { id: string; row: number; col: number; depth: number }[]; depth?: number } : null;
+        const chainData: ChainData | null = bombData && "chainData" in bombData && bombData.chainData && typeof bombData.chainData === "object" && Array.isArray(bombData.chainData.superTileChainSteps) ? bombData.chainData : null;
         const directStep: { row: number; col: number }[] = [];
 
         const pushRemoved = (r: number, c: number) => {

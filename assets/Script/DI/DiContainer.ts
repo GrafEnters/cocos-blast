@@ -1,7 +1,7 @@
 export default class DiContainer {
     private static instanceValue: DiContainer = new DiContainer();
 
-    private services: Map<string, any> = new Map();
+    private services: Map<string, unknown> = new Map();
 
     static get instance(): DiContainer {
         return DiContainer.instanceValue;

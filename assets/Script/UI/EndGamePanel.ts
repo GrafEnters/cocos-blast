@@ -3,6 +3,7 @@ import LevelsConfigList from "../Config/LevelsConfigList";
 import PlayerProfile from "../PlayerProfile";
 import DiContainer from "../DI/DiContainer";
 import DiTokens from "../DI/DiTokens";
+import DiInitializer from "../DI/DiInitializer";
 
 @ccclass
 export default class EndGamePanel extends cc.Component {
@@ -73,7 +74,7 @@ export default class EndGamePanel extends cc.Component {
             return;
         }
 
-        const diInitializer = DiContainer.instance.resolve<any>(DiTokens.DiInitializer);
+        const diInitializer = DiContainer.instance.resolve<DiInitializer>(DiTokens.DiInitializer);
 
         if (!diInitializer) {
             return;

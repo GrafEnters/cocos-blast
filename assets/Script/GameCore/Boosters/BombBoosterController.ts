@@ -4,6 +4,9 @@ import BoosterButtonView from "../../UI/BoosterButtonView";
 import IBoosterController from "./IBoosterController";
 import {BoosterConfig} from "../../Config/BoosterConfig";
 import {BombBoosterConfig} from "../../Config/BombBoosterConfig";
+import IFieldView from "../IFieldView";
+import IAnimationView from "../Animations/IAnimationView";
+import { PreAnimationCallback } from "../Types/BoosterData";
 
 export default class BombBoosterController implements IBoosterController {
     private overlay: cc.Node = null;
@@ -115,7 +118,7 @@ export default class BombBoosterController implements IBoosterController {
             row: tile.row,
             col: tile.col,
             bombSpriteFrame: this.bombSpriteFrame,
-            preAnimation: async (fieldView: any, animationView: any) => {
+            preAnimation: async (fieldView: IFieldView, animationView: IAnimationView) => {
                 if (!fieldView) {
                     return;
                 }

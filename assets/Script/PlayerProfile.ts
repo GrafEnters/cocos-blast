@@ -1,4 +1,5 @@
 import BoostersConfigList from "./Config/BoostersConfigList";
+import { BoosterConfig } from "./Config/BoosterConfig";
 
 export default class PlayerProfile {
 
@@ -20,7 +21,7 @@ export default class PlayerProfile {
         }
         const configs = config.getConfigs();
         for (let i = 0; i < configs.length; i++) {
-            const cfg: any = configs[i];
+            const cfg: BoosterConfig = configs[i];
             if (!cfg || typeof cfg.id !== "string") {
                 continue;
             }

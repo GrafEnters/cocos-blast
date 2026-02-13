@@ -4,6 +4,7 @@ import DiTokens from "../DI/DiTokens";
 import IGameController from "../GameCore/IGameController";
 import LevelsConfigList from "../Config/LevelsConfigList";
 import PlayerProfile from "../PlayerProfile";
+import DiInitializer from "../DI/DiInitializer";
 
 @ccclass
 export default class AdminPanel extends cc.Component {
@@ -134,7 +135,7 @@ export default class AdminPanel extends cc.Component {
             return;
         }
 
-        const diInitializer = DiContainer.instance.resolve<any>(DiTokens.DiInitializer);
+        const diInitializer = DiContainer.instance.resolve<DiInitializer>(DiTokens.DiInitializer);
 
         if (!diInitializer) {
             return;

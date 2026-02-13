@@ -3,6 +3,8 @@ import SupertileExtensionFactory from "../Supertiles/SupertileExtensionFactory";
 import BoosterExtensionFactory from "../Boosters/BoosterExtensionFactory";
 import TileInputEventType from "../../Input/TileInputEventType";
 import TileInputEvent from "../../Input/TileInputEvent";
+import { BoosterData, PreAnimationCallback } from "../Types/BoosterData";
+import { SuperTileData } from "../Types/SuperTileData";
 
 export type { BlastGameBoardCell, BlastGameStepResult };
 
@@ -66,8 +68,8 @@ export default class BlastGameModel implements IGameModel {
             }
 
             const chainData: { superTileChainSteps: GameAnimationStep[]; depth?: number } = { superTileChainSteps: [] };
-            const boosterData = event.boosterData || {};
-            (boosterData as any).chainData = chainData;
+            const boosterData = (event.boosterData || {}) as BoosterData & { chainData?: { superTileChainSteps: GameAnimationStep[]; depth?: number } };
+            boosterData.chainData = chainData;
 
             const result = this.handleBooster(event.boosterId, boosterData);
 
@@ -75,7 +77,7 @@ export default class BlastGameModel implements IGameModel {
                 return null;
             }
 
-            const preAnimation = boosterData.preAnimation && typeof boosterData.preAnimation === "function" 
+            const preAnimation: PreAnimationCallback | undefined = boosterData && typeof boosterData === "object" && "preAnimation" in boosterData && typeof boosterData.preAnimation === "function" 
                 ? boosterData.preAnimation 
                 : undefined;
 
@@ -169,7 +171,7 @@ export default class BlastGameModel implements IGameModel {
         this.remainingMoves += value;
     }
 
-    handleTap(row: number, col: number, data?: any): BlastGameStepResult | null {
+    handleTap(row: number, col: number, data?: SuperTileData): BlastGameStepResult | null {
         if (this.remainingMoves <= 0) {
             return null;
         }
@@ -194,12 +196,13 @@ export default class BlastGameModel implements IGameModel {
                 return null;
             }
 
-            const chainData = data || {};
-            if (!Array.isArray(chainData.superTileQueue)) {
-                chainData.superTileQueue = [];
+            const chainData: SuperTileData = data || { superTileChainSteps: [] };
+            if (!("superTileQueue" in chainData) || !Array.isArray(chainData.superTileQueue)) {
+                (chainData as SuperTileData & { superTileQueue: { id: string; row: number; col: number; depth: number }[] }).superTileQueue = [];
             }
-            chainData.superTileQueue.push({ id: superTileId, row, col, depth: 0 });
-            chainData.depth = 0;
+            const queue = (chainData as SuperTileData & { superTileQueue: { id: string; row: number; col: number; depth: number }[] }).superTileQueue;
+            queue.push({ id: superTileId, row, col, depth: 0 });
+            (chainData as SuperTileData & { depth: number }).depth = 0;
 
             const internalResult = this.processSuperTileQueueInternal(chainData);
             if (!internalResult) {
@@ -256,7 +259,7 @@ export default class BlastGameModel implements IGameModel {
     }
 
 
-    handleBooster(boosterId: string, data?: any): BlastGameStepResult | null {
+    handleBooster(boosterId: string, data?: BoosterData): BlastGameStepResult | null {
         if (this.remainingMoves <= 0) {
             return null;
         }
@@ -283,7 +286,7 @@ export default class BlastGameModel implements IGameModel {
         return result;
     }
 
-    private handleSuperTileInternal(id: string, row: number, col: number, data?: any): BlastGameStepResult | null {
+    private handleSuperTileInternal(id: string, row: number, col: number, data?: SuperTileData): BlastGameStepResult | null {
         if (!this.superTileExtensionFactory) {
             return null;
         }
@@ -294,8 +297,8 @@ export default class BlastGameModel implements IGameModel {
         return extension.handle(this, row, col, data);
     }
 
-    private processSuperTileQueueInternal(data: any): BlastGameStepResult | null {
-        if (!data || !Array.isArray(data.superTileQueue)) {
+    private processSuperTileQueueInternal(data: SuperTileData): BlastGameStepResult | null {
+        if (!data || typeof data !== "object" || !("superTileQueue" in data) || !Array.isArray(data.superTileQueue)) {
             return null;
         }
 
@@ -314,7 +317,7 @@ export default class BlastGameModel implements IGameModel {
                 continue;
             }
 
-            data.depth = item.depth;
+            (data as SuperTileData & { depth: number }).depth = item.depth;
 
             const result = this.handleSuperTileInternal(item.id, item.row, item.col, data);
             if (!result || !result.removed || result.removed.length === 0) {
@@ -347,7 +350,7 @@ export default class BlastGameModel implements IGameModel {
         };
     }
 
-    processSuperTileQueuePublic(data: any): BlastGameStepResult | null {
+    processSuperTileQueuePublic(data: SuperTileData): BlastGameStepResult | null {
         return this.processSuperTileQueueInternal(data);
     }
 
